@@ -1,0 +1,63 @@
+server {
+  listen ${NGINX_PORT};
+
+  server_name ${NGINX_HOST};
+
+  client_max_body_size 100M;
+
+  # Common proxy settings
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection 'upgrade';
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_cache_bypass $http_upgrade;
+
+  # Docs app (Next.js) - handle /docs path
+  location /docs/ {
+    proxy_pass http://docs:${DOCS_PORT}/;
+  }
+
+  # Marketing website (also part of docs app)
+  location /marketing/ {
+    proxy_pass http://docs:${DOCS_PORT}/marketing/;
+  }
+
+  # Main web application (AdonisJS)
+  location / {
+    proxy_pass http://web:${WEB_PORT};
+  }
+
+  # Logto callback
+  location /logto/callback {
+    proxy_pass http://web:${WEB_PORT};
+  }
+
+  # MailHog web interface
+  location /mailhog/ {
+    proxy_pass http://mailhog:8025/;
+  }
+
+  # Cache static assets for docs app
+  location ~* ^/docs/.*\.(jpg|jpeg|png|gif|ico|css|js)$ {
+    proxy_pass http://docs:${DOCS_PORT};
+    expires 30d;
+    add_header Cache-Control "public, no-transform";
+  }
+
+  # Cache static assets for marketing
+  location ~* ^/marketing/.*\.(jpg|jpeg|png|gif|ico|css|js)$ {
+    proxy_pass http://docs:${DOCS_PORT};
+    expires 30d;
+    add_header Cache-Control "public, no-transform";
+  }
+
+  # Cache static assets for web app
+  location ~* ^/.*\.(jpg|jpeg|png|gif|ico|css|js)$ {
+    proxy_pass http://web:${WEB_PORT};
+    expires 30d;
+    add_header Cache-Control "public, no-transform";
+  }
+}

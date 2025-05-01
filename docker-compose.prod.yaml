@@ -1,0 +1,202 @@
+# This compose file is for development and testing purposes only
+# For production, we will use Kubernetes
+
+name: maya-adonisjs-dev
+
+services:
+  # Web applications
+  web:
+    container_name: 'maya_web'
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: development # Use development stage from Dockerfile
+    env_file:
+      - apps/web/.env
+    volumes:
+      - ./apps/web:/app/apps/web
+      - /app/apps/web/node_modules
+    networks:
+      - maya_network
+    depends_on:
+      pgsql:
+        condition: service_healthy
+      # Temporarily disable Ollama dependency
+      # ollama:
+      #   condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3333
+      NODE_ENV: development
+      DB_HOST: pgsql
+      DB_USER: postgres
+      DB_PASSWORD: secret
+      DB_DATABASE: default
+      REDIS_HOST: redis
+      CLICKHOUSE_HOST: clickhouse
+      LOGTO_ENDPOINT: http://logto:3001
+      LOGTO_ADMIN_ENDPOINT: http://logto:3002
+      # Temporarily comment out Ollama host
+      # OLLAMA_HOST: http://ollama:11434
+      # MailHog configuration
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_SECURE: false
+      MAIL_FROM: noreply@localhost.com
+    ports:
+      - '3333:3333'
+
+  # Add placeholders for future apps
+  # Uncomment and customize as needed when you add more apps
+  
+  # web2:
+  #   container_name: 'maya_web2'
+  #   restart: unless-stopped
+  #   build:
+  #     context: .
+  #     dockerfile: apps/web2/Dockerfile
+  #     target: development
+  #   env_file:
+  #     - apps/web2/.env
+  #   volumes:
+  #     - ./apps/web2:/app/apps/web2
+  #     - /app/apps/web2/node_modules
+  #   networks:
+  #     - maya_network
+  #   depends_on:
+  #     pgsql:
+  #       condition: service_healthy
+  #     ollama:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     HOST: 0.0.0.0
+  #     PORT: 3334
+  #     NODE_ENV: development
+  #     DB_HOST: pgsql
+  #     REDIS_HOST: redis
+  #     OLLAMA_HOST: http://ollama:11434
+  #   ports:
+  #     - '3334:3334'
+
+  # web3:
+  #   container_name: 'maya_web3'
+  #   restart: unless-stopped
+  #   build:
+  #     context: .
+  #     dockerfile: apps/web3/Dockerfile
+  #     target: development
+  #   env_file:
+  #     - apps/web3/.env
+  #   volumes:
+  #     - ./apps/web3:/app/apps/web3
+  #     - /app/apps/web3/node_modules
+  #   networks:
+  #     - maya_network
+  #   depends_on:
+  #     pgsql:
+  #       condition: service_healthy
+  #     ollama:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     HOST: 0.0.0.0
+  #     PORT: 3335
+  #     NODE_ENV: development
+  #     DB_HOST: pgsql
+  #     REDIS_HOST: redis
+  #     OLLAMA_HOST: http://ollama:11434
+  #   ports:
+  #     - '3335:3335'
+
+  # Nginx proxy for development
+  proxy:
+    container_name: 'maya_proxy'
+    restart: unless-stopped
+    image: 'nginx:1.25-alpine'
+    volumes:
+      - ./.github/docker/nginx/default.conf.template:/etc/nginx/templates/default.conf.template
+    networks:
+      - maya_network
+    ports:
+      - '80:80'
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+      - WEB_PORT=3333
+      # Add more app ports as needed
+      # - WEB2_PORT=3334
+      # - WEB3_PORT=3335
+    depends_on:
+      - web
+      # - web2
+      # - web3
+
+  # Import services from the main docker-compose.yaml
+  pgsql:
+    extends:
+      file: docker-compose.yaml
+      service: pgsql
+    restart: unless-stopped
+
+  # Temporarily disable Ollama service
+  # ollama:
+  #   extends:
+  #     file: docker-compose.yaml
+  #     service: ollama
+  #   restart: unless-stopped
+
+  # Temporarily disable PgAI vectorizer service
+  # pgai_vectorizer:
+  #   extends:
+  #     file: docker-compose.yaml
+  #     service: pgai_vectorizer
+  #   restart: unless-stopped
+
+  # Temporarily disable init_gemma3 service
+  # init_gemma3:
+  #   extends:
+  #     file: docker-compose.yaml
+  #     service: init_gemma3
+  #   restart: "no"
+
+  redis:
+    extends:
+      file: docker-compose.yaml
+      service: redis
+    restart: unless-stopped
+
+  clickhouse:
+    extends:
+      file: docker-compose.yaml
+      service: clickhouse
+    restart: unless-stopped
+
+  logto:
+    extends:
+      file: docker-compose.yaml
+      service: logto
+    restart: unless-stopped
+
+  logto_postgres:
+    extends:
+      file: docker-compose.yaml
+      service: logto_postgres
+    restart: unless-stopped
+    
+  # MailHog for local email testing
+  mailhog:
+    extends:
+      file: docker-compose.yaml
+      service: mailhog
+    restart: unless-stopped
+
+networks:
+  maya_network:
+    name: maya-adonisjs_maya_network
+    external: false
