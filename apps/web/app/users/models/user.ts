@@ -41,6 +41,12 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare avatarUrl: string | null
 
+  @column({
+    prepare: (value) => (typeof value === 'object' ? JSON.stringify(value) : value),
+    consume: (value) => (typeof value === 'string' ? JSON.parse(value) : value),
+  })
+  declare customData: Record<string, any>
+
   @belongsTo(() => Role)
   declare role: BelongsTo<typeof Role>
 

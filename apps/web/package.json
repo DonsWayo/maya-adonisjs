@@ -23,7 +23,8 @@
     "#marketing/*": "./app/marketing/*.js",
     "#analytics/*": "./app/analytics/*.js",
     "#providers/*": "./providers/*.js",
-    "#tests/*": "./tests/*.js"
+    "#tests/*": "./tests/*.js",
+    "#webhooks/*": "./app/webhooks/*.js"
   },
   "devDependencies": {
     "@workspace/email": "workspace:*",

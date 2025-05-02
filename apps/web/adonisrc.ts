@@ -78,6 +78,9 @@ export default defineConfig({
 
     //analytics
     () => import('#analytics/routes'),
+
+    //webhooks
+    () => import('#webhooks/routes'),
   ],
 
   /*

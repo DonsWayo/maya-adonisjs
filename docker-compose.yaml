@@ -115,6 +115,8 @@ services:
       - DB_URL=postgres://postgres:p0stgr3s@logto_postgres:5432/logto
       - ENDPOINT=${LOGTO_ENDPOINT:-http://localhost:3001}
       - ADMIN_ENDPOINT=${LOGTO_ADMIN_ENDPOINT:-http://localhost:3002}
+    volumes:
+      - 'logto_data:/opt/logto/packages/core/data'
     networks:
       - maya_network
 
@@ -176,6 +178,8 @@ services:
     volumes:
       - ./apps/web:/app/apps/web
       - /app/apps/web/node_modules
+      - web_uploads:/app/apps/web/uploads
+      - web_tmp:/app/apps/web/tmp
     networks:
       - maya_network
     ports:
@@ -197,6 +201,7 @@ services:
       LOGTO_AUTHORIZE_URL: http://logto:3001/oidc/auth
       LOGTO_ACCESS_TOKEN_URL: http://logto:3001/oidc/token
       LOGTO_USER_INFO_URL: http://logto:3001/oidc/me
+      LOGTO_WEBHOOK_SIGNING_KEY: ${LOGTO_WEBHOOK_SIGNING_KEY:-q0TWqUY9CrxaDI0pXmeLQbnFnNRnoGQt}
       
   # Documentation app (Next.js)
   docs:
@@ -247,4 +252,7 @@ volumes:
   redis_data:
   clickhouse_data:
   logto_postgres_data:
+  logto_data:
   ollama_data:
+  web_uploads:
+  web_tmp:
