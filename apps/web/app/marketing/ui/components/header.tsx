@@ -23,7 +23,7 @@ export default function HeaderSection() {
             </Link>
             <Link
               className="w-auto rounded-xl font-medium transition-all duration-300 md:font-semibold md:-mx-3 md:inline-flex md:items-center md:justify-center px-3 py-2 md:text-sm hover:bg-muted"
-              href="/login"
+              href="/logto/redirect"
             >
               Login
             </Link>
@@ -46,7 +46,7 @@ export default function HeaderSection() {
         <div className="flex justify-end relative z-50">
           <Link
             className="w-auto rounded-xl font-medium transition-all duration-300 md:font-semibold md:-mx-3 md:items-center md:justify-center px-3 py-2 md:text-sm hover:bg-muted hidden md:block"
-            href="/login"
+            href="/logto/redirect"
           >
             Login
           </Link>

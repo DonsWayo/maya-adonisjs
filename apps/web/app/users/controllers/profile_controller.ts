@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { attachmentManager } from '@jrmc/adonis-attachment'
+import emitter from '@adonisjs/core/services/emitter'
 
 import User from '#users/models/user'
 
@@ -30,6 +31,9 @@ export default class ProfileController {
     })
 
     await user.save()
+    
+    // Emit event for the updated user profile
+    await emitter.emit('user:updated', { user, source: 'profile_update' })
 
     return response.redirect().toRoute('profile.show')
   }

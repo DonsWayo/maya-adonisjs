@@ -1,17 +1,14 @@
 import vine from '@vinejs/vine'
-import User from './models/user.js'
 
 export const createUserValidator = vine.compile(
   vine.object({
     fullName: vine.string().trim().minLength(3).maxLength(255),
-    email: vine.string().email().toLowerCase().trim().unique({ table: 'users', column: 'email' }),
+    email: vine.string().email().toLowerCase().trim().unique({ table: 'users', column: 'email' }).nullable(),
+    username: vine.string().trim().minLength(3).maxLength(128).nullable(),
+    primaryPhone: vine.string().trim().maxLength(20).nullable(),
     roleId: vine.number().exists({ table: 'roles', column: 'id' }),
-    password: vine
-      .string()
-      .minLength(1)
-      .maxLength(255)
-      .confirmed({ confirmationField: 'passwordConfirmation' })
-      .optional(),
+    externalId: vine.string().trim().maxLength(255).nullable(),
+    customData: vine.any().optional(),
   })
 )
 
@@ -41,17 +38,9 @@ export const inviteUserValidator = vine.compile(
   })
 )
 
-export const updatePasswordValidator = vine.compile(
-  vine.object({
-    password: vine
-      .string()
-      .minLength(1)
-      .maxLength(255)
-      .confirmed({ confirmationField: 'passwordConfirmation' }),
-  })
-)
+// Removed updatePasswordValidator as we no longer handle passwords with Logto integration
 
-export const editUserValidator = vine.withMetaData<{ userId: number }>().compile(
+export const editUserValidator = vine.withMetaData<{ userId: string }>().compile(
   vine.object({
     fullName: vine.string().trim().minLength(3).maxLength(255),
     email: vine
@@ -59,19 +48,11 @@ export const editUserValidator = vine.withMetaData<{ userId: number }>().compile
       .email()
       .toLowerCase()
       .trim()
-      .unique(async (_, value, field) => {
-        const row = await User.query()
-          .where('email', value)
-          .whereNot('id', field.meta.userId)
-          .first()
-        return row ? false : true
-      }),
+      .nullable(),
+    username: vine.string().trim().minLength(3).maxLength(128).nullable(),
+    primaryPhone: vine.string().trim().maxLength(20).nullable(),
     roleId: vine.number().exists({ table: 'roles', column: 'id' }),
-    password: vine
-      .string()
-      .minLength(1)
-      .maxLength(255)
-      .confirmed({ confirmationField: 'passwordConfirmation' })
-      .optional(),
+    externalId: vine.string().trim().maxLength(255).nullable(),
+    customData: vine.any().optional(),
   })
 )

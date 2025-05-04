@@ -1,9 +1,7 @@
-import hash from '@adonisjs/core/services/hash'
-import { compose } from '@adonisjs/core/helpers'
-import { belongsTo, column, computed, hasMany } from '@adonisjs/lucid/orm'
-import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
-import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { belongsTo, column, computed } from '@adonisjs/lucid/orm'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
+import { DateTime } from 'luxon'
 
 import { attachment, attachmentManager } from '@jrmc/adonis-attachment'
 import type { Attachment } from '@jrmc/adonis-attachment/types/attachment'
@@ -12,16 +10,10 @@ import BaseModel from '#common/models/base_model'
 import Role from '#users/models/role'
 
 import Roles from '#users/enums/role'
-import ResetPasswordToken from '#users/models/reset_password_token'
 
-const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
-  uids: ['email'],
-  passwordColumnName: 'password',
-})
-
-export default class User extends compose(BaseModel, AuthFinder) {
+export default class User extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare roleId: number
@@ -30,10 +22,22 @@ export default class User extends compose(BaseModel, AuthFinder) {
   declare fullName: string | null
 
   @column()
-  declare email: string
-
-  @column({ serializeAs: null })
-  declare password: string | null
+  declare email: string | null
+  
+  @column()
+  declare username: string | null
+  
+  @column()
+  declare primaryPhone: string | null
+  
+  @column()
+  declare applicationId: string | null
+  
+  @column.dateTime()
+  declare lastSignInAt: DateTime | null
+  
+  @column()
+  declare externalId: string | null
 
   @attachment({ preComputeUrl: false })
   declare avatar: Attachment
@@ -46,12 +50,27 @@ export default class User extends compose(BaseModel, AuthFinder) {
     consume: (value) => (typeof value === 'string' ? JSON.parse(value) : value),
   })
   declare customData: Record<string, any>
+  
+  @column({
+    prepare: (value) => (typeof value === 'object' ? JSON.stringify(value) : value),
+    consume: (value) => (typeof value === 'string' ? JSON.parse(value) : value),
+  })
+  declare profile: Record<string, any> | null
+  
+  @column({
+    prepare: (value) => (typeof value === 'object' ? JSON.stringify(value) : value),
+    consume: (value) => (typeof value === 'string' ? JSON.parse(value) : value),
+  })
+  declare identities: Record<string, any> | null
+  
+  @column({
+    prepare: (value) => (typeof value === 'object' ? JSON.stringify(value) : value),
+    consume: (value) => (typeof value === 'string' ? JSON.parse(value) : value),
+  })
+  declare ssoIdentities: Record<string, any> | null
 
   @belongsTo(() => Role)
   declare role: BelongsTo<typeof Role>
-
-  @hasMany(() => ResetPasswordToken)
-  declare resetPasswordTokens: HasMany<typeof ResetPasswordToken>
 
   @computed()
   get isAdmin() {

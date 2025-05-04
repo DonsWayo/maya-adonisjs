@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import emitter from '@adonisjs/core/services/emitter'
+import { randomUUID } from 'node:crypto'
 
 import User from '#users/models/user'
 
@@ -13,7 +14,10 @@ export default class InviteController {
 
     const payload = await request.validateUsing(inviteUserValidator)
 
-    const user = await User.create({
+    // Create a new user with UUID
+    const user = new User()
+    user.id = `usr_${randomUUID()}`
+    user.merge({
       email: payload.email,
       roleId: payload.roleId,
     })

@@ -11,20 +11,15 @@ import router from '@adonisjs/core/services/router'
 
 const UsersController = () => import('#users/controllers/users_controller')
 const ProfileController = () => import('#users/controllers/profile_controller')
-const PasswordController = () => import('#users/controllers/password_controller')
-const InviteController = () => import('#users/controllers/invite_controller')
-const ImpersonatesController = () => import('#users/controllers/impersonates_controller')
 const TokensController = () => import('#users/controllers/tokens_controller')
+// Removed controllers that will be handled by Logto
 
 router
   .resource('/users', UsersController)
   .only(['index', 'store', 'update', 'destroy'])
   .use('*', middleware.auth())
 
-router.post('/users/invite', [InviteController]).middleware(middleware.auth())
-router
-  .post('/users/impersonate/:id', [ImpersonatesController, 'store'])
-  .middleware(middleware.auth())
+// Removed invite and impersonate routes - will be handled by Logto
 
 router
   .get('/settings', ({ response }) => {
@@ -46,8 +41,4 @@ router
 
 router.post('/api/tokens', [TokensController, 'store']).middleware(middleware.auth())
 
-router.put('/settings/password', [PasswordController]).middleware(middleware.auth())
-router
-  .get('/settings/password', [PasswordController, 'show'])
-  .middleware(middleware.auth())
-  .as('password.show')
+// Removed password routes - will be handled by Logto

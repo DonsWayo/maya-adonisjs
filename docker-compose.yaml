@@ -81,6 +81,8 @@ services:
     #   timeout: 5s
     #   retries: 5
     #   start_period: 20s
+    # Temporarily disabled - uncomment to enable
+    profiles: [ai]
 
   # PgAI vectorizer worker for background processing
   pgai_vectorizer:
@@ -98,6 +100,8 @@ services:
       # Make Ollama dependency optional
       # ollama:
       #   condition: service_started
+    # Temporarily disabled - uncomment to enable
+    profiles: [ai]
 
   # Logto for authentication
   logto:
@@ -113,12 +117,33 @@ services:
     environment:
       - TRUST_PROXY_HEADER=1
       - DB_URL=postgres://postgres:p0stgr3s@logto_postgres:5432/logto
-      - ENDPOINT=${LOGTO_ENDPOINT:-http://localhost:3001}
-      - ADMIN_ENDPOINT=${LOGTO_ADMIN_ENDPOINT:-http://localhost:3002}
+      # Set the endpoints for Logto to use with Traefik
+      - ENDPOINT=http://logto.localhost
+      - ADMIN_ENDPOINT=http://admin.logto.localhost
+      # Explicitly set the cookie domain to match the hostname
+      - COOKIE_DOMAIN=.localhost
     volumes:
       - 'logto_data:/opt/logto/packages/core/data'
     networks:
       - maya_network
+    labels:
+      - "traefik.enable=true"
+      # Main Logto service configuration
+      - "traefik.http.routers.logto.rule=Host(`logto.localhost`)"
+      - "traefik.http.routers.logto.service=logto-main"
+      - "traefik.http.services.logto-main.loadbalancer.server.port=3001"
+      - "traefik.http.routers.logto.middlewares=logto-headers"
+      # Admin Logto service configuration
+      - "traefik.http.routers.logto-admin.rule=Host(`admin.logto.localhost`)"
+      - "traefik.http.routers.logto-admin.service=logto-admin-ui"
+      - "traefik.http.services.logto-admin-ui.loadbalancer.server.port=3002"
+      - "traefik.http.routers.logto-admin.middlewares=logto-admin-headers"
+      # Headers middleware for Logto
+      - "traefik.http.middlewares.logto-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
+      - "traefik.http.middlewares.logto-headers.headers.customrequestheaders.X-Forwarded-Host=logto.localhost"
+      # Headers middleware for Logto Admin
+      - "traefik.http.middlewares.logto-admin-headers.headers.customrequestheaders.X-Forwarded-Proto=http"
+      - "traefik.http.middlewares.logto-admin-headers.headers.customrequestheaders.X-Forwarded-Host=admin.logto.localhost"
 
   # Dedicated Postgres for Logto
   logto_postgres:
@@ -151,6 +176,8 @@ services:
     #     condition: service_healthy
     command: ["-X", "POST", "http://ollama:11434/api/pull", "-d", '{"name":"gemma3:2b-instruct-q4_0"}']
     restart: "no"
+    # Temporarily disabled - uncomment to enable
+    profiles: [ai]
     
   # MailHog for local email testing
   mailhog:
@@ -166,6 +193,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailhog.rule=Host(`mailhog.localhost`)"
+      - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
       
   # Web application (AdonisJS)
   web:
@@ -182,6 +213,8 @@ services:
       - web_tmp:/app/apps/web/tmp
     networks:
       - maya_network
+    # Port is only exposed for direct access if needed
+    # Traefik will handle routing through labels
     ports:
       - '${WEB_PORT:-3333}:3333'
     depends_on:
@@ -197,11 +230,24 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       DB_HOST: pgsql
       REDIS_HOST: redis
+      # Internal URLs for container-to-container communication
       LOGTO_URL: http://logto:3001/oidc/auth
       LOGTO_AUTHORIZE_URL: http://logto:3001/oidc/auth
       LOGTO_ACCESS_TOKEN_URL: http://logto:3001/oidc/token
       LOGTO_USER_INFO_URL: http://logto:3001/oidc/me
+      # Public URLs for browser redirects
+      LOGTO_PUBLIC_URL: http://logto.localhost/oidc/auth
+      LOGTO_PUBLIC_AUTHORIZE_URL: http://logto.localhost/oidc/auth
+      LOGTO_PUBLIC_ACCESS_TOKEN_URL: http://logto.localhost/oidc/token
+      LOGTO_PUBLIC_USER_INFO_URL: http://logto.localhost/oidc/me
       LOGTO_WEBHOOK_SIGNING_KEY: ${LOGTO_WEBHOOK_SIGNING_KEY:-q0TWqUY9CrxaDI0pXmeLQbnFnNRnoGQt}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`app.localhost`) || Host(`localhost`)"
+      - "traefik.http.routers.web.service=web-app"
+      - "traefik.http.services.web-app.loadbalancer.server.port=3333"
+    # You can uncomment the following line to disable this service when not needed
+    # profiles: [dev]
       
   # Documentation app (Next.js)
   docs:
@@ -220,29 +266,126 @@ services:
       - '${DOCS_PORT:-3300}:3300'
     environment:
       - NODE_ENV=${NODE_ENV:-development}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.docs.rule=Host(`docs.localhost`)"
+      - "traefik.http.services.docs.loadbalancer.server.port=3300"
       
-  # Nginx proxy for routing
-  proxy:
-    build:
-      context: ./.github/docker/nginx
-      dockerfile: Dockerfile
-    container_name: 'maya_proxy'
+  # Placeholder for future web2 application
+  # web2:
+  #   container_name: 'maya_web2'
+  #   restart: unless-stopped
+  #   build:
+  #     context: .
+  #     dockerfile: apps/web2/Dockerfile
+  #     target: development
+  #   env_file:
+  #     - apps/web2/.env
+  #   volumes:
+  #     - ./apps/web2:/app/apps/web2
+  #     - /app/apps/web2/node_modules
+  #   networks:
+  #     - maya_network
+  #   depends_on:
+  #     pgsql:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     HOST: 0.0.0.0
+  #     PORT: 3334
+  #     NODE_ENV: development
+  #     DB_HOST: pgsql
+  #     REDIS_HOST: redis
+  #   ports:
+  #     - '3334:3334'
+  #   profiles: [web2]
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.web2.rule=Host(`web2.localhost`)"
+  #     - "traefik.http.services.web2.loadbalancer.server.port=3334"
+
+  # Placeholder for future web3 application
+  # web3:
+  #   container_name: 'maya_web3'
+  #   restart: unless-stopped
+  #   build:
+  #     context: .
+  #     dockerfile: apps/web3/Dockerfile
+  #     target: development
+  #   env_file:
+  #     - apps/web3/.env
+  #   volumes:
+  #     - ./apps/web3:/app/apps/web3
+  #     - /app/apps/web3/node_modules
+  #   networks:
+  #     - maya_network
+  #   depends_on:
+  #     pgsql:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     HOST: 0.0.0.0
+  #     PORT: 3335
+  #     NODE_ENV: development
+  #     DB_HOST: pgsql
+  #     REDIS_HOST: redis
+  #   ports:
+  #     - '3335:3335'
+  #   profiles: [web3]
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.web3.rule=Host(`web3.localhost`)"
+  #     - "traefik.http.services.web3.loadbalancer.server.port=3335"
+      
+  # Traefik proxy for routing and service discovery
+  traefik:
+    image: traefik:v2.9
+    container_name: 'maya_traefik'
     restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.forwardedHeaders.insecure=true"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.forwardedHeaders.insecure=true"
+      - "--log.level=${TRAEFIK_LOG_LEVEL:-INFO}"
     ports:
-      - '${NGINX_PORT:-80}:80'
-    environment:
-      - NGINX_HOST=${NGINX_HOST:-localhost}
-      - NGINX_PORT=80
-      - WEB_PORT=${WEB_PORT:-3333}
-      - DOCS_PORT=${DOCS_PORT:-3300}
+      - '${TRAEFIK_PORT:-80}:80'
+      - '${TRAEFIK_SECURE_PORT:-443}:443'
+      - '${TRAEFIK_DASHBOARD_PORT:-8080}:8080'  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - maya_network
-    depends_on:
-      - web
-      - docs
+
+  # MinIO - S3 compatible object storage
+  minio:
+    image: minio/minio:latest
+    container_name: 'maya_minio'
+    restart: unless-stopped
+    profiles: ["dev"]
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    networks:
+      - maya_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio-api.rule=Host(`minio.localhost`)"
+      - "traefik.http.services.minio-api.loadbalancer.server.port=9000"
+      - "traefik.http.routers.minio-console.rule=Host(`minio-console.localhost`)"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
 
 networks:
   maya_network:
+    name: maya-adonisjs_maya_network
     driver: bridge
 
 
@@ -256,3 +399,4 @@ volumes:
   ollama_data:
   web_uploads:
   web_tmp:
+  minio_data:

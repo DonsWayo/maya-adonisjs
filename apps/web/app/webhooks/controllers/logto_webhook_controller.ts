@@ -1,5 +1,6 @@
-import { createHmac } from 'node:crypto'
+import { createHmac, randomUUID } from 'node:crypto'
 import { HttpContext } from '@adonisjs/core/http'
+import emitter from '@adonisjs/core/services/emitter'
 import User from '#users/models/user'
 import Roles from '#users/enums/role'
 import env from '#start/env'
@@ -16,12 +17,6 @@ import env from '#start/env'
  * - Organization.User.Removed: When a user is removed from an organization
  */
 export default class LogtoWebhookController {
-  /**
-   * Verify the webhook signature
-   * 
-   * Implementation directly from Logto documentation:
-   * https://docs.logto.io/developers/webhooks/secure-webhooks
-   */
   /**
    * Verify the webhook signature using HMAC SHA-256
    * 
@@ -41,7 +36,7 @@ export default class LogtoWebhookController {
       
       // Log signature details for debugging
       logger.info({
-        signingKey,
+        signingKey: signingKey ? `${signingKey.substring(0, 5)}...${signingKey.substring(signingKey.length - 5)}` : 'MISSING',
         expectedSignature,
         calculatedSignature,
         matches: calculatedSignature === expectedSignature,
@@ -60,6 +55,7 @@ export default class LogtoWebhookController {
       return false
     }
   }
+
   /**
    * Handle the webhook request
    */
@@ -69,6 +65,9 @@ export default class LogtoWebhookController {
       const payload = request.body()
       const event = payload.event
 
+      // Emit the webhook event
+      await emitter.emit('logto:webhook', { event, data: payload })
+      
       // Log the webhook request details with EVERYTHING
       logger.info({
         url: request.url(),
@@ -84,12 +83,12 @@ export default class LogtoWebhookController {
 
       // Get the raw request body for signature verification
       // IMPORTANT: This must be the exact raw body that Logto sent
-      const rawBody = request.raw()
+      const rawBody = request.raw() || ''
 
       // Get the signature from the header - check both original and forwarded headers
       // This is important when behind a proxy
       const signature = request.header('logto-signature-sha-256') || 
-                        request.header('x-forwarded-logto-signature-sha-256')
+                        request.header('x-forwarded-logto-signature-sha-256') || ''
 
       // Get the webhook signing key from environment variables
       const signingKey = env.get('LOGTO_WEBHOOK_SIGNING_KEY')
@@ -104,65 +103,25 @@ export default class LogtoWebhookController {
         signingKeyLength: signingKey?.length || 0,
         allHeaders: JSON.stringify(request.headers()),
         allEnvVars: JSON.stringify({
-          NODE_ENV: env.get('NODE_ENV'),
-          APP_KEY: env.get('APP_KEY')?.substring(0, 5) + '...',
+          LOGTO_WEBHOOK_SIGNING_KEY: signingKey ? `${signingKey.substring(0, 5)}...` : 'MISSING',
         }),
-      }, 'WEBHOOK SIGNATURE DETAILS - FULL')
+      }, 'SIGNATURE VERIFICATION INFO')
 
-      // Verify the signature
-      if (!signature || !signingKey || !rawBody) {
-        logger.error({
-          hasSignature: !!signature, 
-          hasSigningKey: !!signingKey, 
-          hasRawBody: !!rawBody,
-          requestId: request.id(),
-        }, 'MISSING WEBHOOK REQUIREMENTS')
-        return response.status(401).json({
-          error: 'Missing signature, signing key, or request body',
-        })
+      // Verify the signature if a signing key is provided
+      if (signingKey && signature) {
+        const isValid = this.verifySignature(signingKey, rawBody, signature, logger)
+        
+        if (!isValid) {
+          logger.error('Invalid webhook signature')
+          return response.status(401).send({ error: 'Invalid signature' })
+        }
+        
+        logger.info('Webhook signature verified successfully')
+      } else {
+        logger.warn('Skipping signature verification - missing key or signature')
       }
 
-      // Log raw body information - COMPLETE DUMP
-      const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody)
-      
-      logger.info({
-        bodyType: typeof rawBody,
-        isBuffer: Buffer.isBuffer(rawBody),
-        bodyLength: rawBody.length,
-        bodyHex: Buffer.isBuffer(rawBody) ? rawBody.toString('hex').substring(0, 100) + '...' : 'N/A',
-        bodyUtf8: bodyStr.substring(0, 1000) + (bodyStr.length > 1000 ? '...' : ''), // Limit the log size
-        requestId: request.id(),
-      }, 'RAW BODY DUMP')
-      
-      try {
-        // Also log the parsed JSON for debugging
-        const parsedBody = JSON.parse(bodyStr)
-        logger.info({
-          parsedBody: JSON.stringify(parsedBody).substring(0, 1000) + '...',
-          requestId: request.id(),
-        }, 'PARSED BODY SAMPLE')
-      } catch (e) {
-        logger.warn({ error: e.message, requestId: request.id() }, 'Failed to parse body as JSON')
-      }
-
-      // Verify the signature
-      if (!this.verifySignature(signingKey, rawBody, signature, logger)) {
-        logger.error({
-          event: request.input('event'),
-          requestId: request.id(),
-        }, 'INVALID WEBHOOK SIGNATURE - ALL METHODS FAILED')
-        return response.status(401).json({
-          error: 'Invalid signature',
-        })
-      }
-
-      logger.info({ event, hookId: payload.hookId }, 'Processing Logto webhook event')
-
-      // Log the full payload for debugging
-      logger.debug({ payload }, 'Full webhook payload')
-      
-      // Handle different event types
-      // Note: We need to be careful with case sensitivity in the event names
+      // Process the webhook based on the event type
       switch (event) {
         // User events
         case 'User.Created':
@@ -182,7 +141,7 @@ export default class LogtoWebhookController {
           break
         case 'Organization.Updated':
         case 'Organization.Data.Updated':
-          logger.info({ organizationId: payload.data?.id }, 'Handling organization update event')
+          console.log(`Handling organization update event: ${payload.data?.id}`)
           await this.handleOrganizationUpdated(payload)
           break
         case 'Organization.Deleted':
@@ -206,33 +165,42 @@ export default class LogtoWebhookController {
           break
         case 'PostResetPassword':
         case 'Post.ResetPassword':
-          logger.info('Received password reset event')
+          console.log('Received password reset event')
           break
 
         // Organization scope and role events
         case 'OrganizationScope.Data.Updated':
-        case 'OrganizationScope.Deleted':
-        case 'OrganizationScope.Created':
-        case 'OrganizationRole.Data.Updated':
-        case 'OrganizationRole.Deleted':
-        case 'OrganizationRole.Created':
-        case 'OrganizationRole.Scopes.Updated':
-        case 'Organization.Membership.Updated':
-          // These events are seen in the logs but not explicitly handled yet
-          logger.info({ event, data: payload.data }, 'Received organization management event')
+          await this.handleOrganizationScopeUpdated(payload)
           break
-
+        case 'OrganizationScope.Deleted':
+          await this.handleOrganizationScopeDeleted(payload)
+          break
+        case 'OrganizationScope.Created':
+          await this.handleOrganizationScopeCreated(payload)
+          break
+        case 'OrganizationRole.Data.Updated':
+          await this.handleOrganizationRoleUpdated(payload)
+          break
+        case 'OrganizationRole.Deleted':
+          await this.handleOrganizationRoleDeleted(payload)
+          break
+        case 'OrganizationRole.Created':
+          await this.handleOrganizationRoleCreated(payload)
+          break
+        case 'OrganizationRole.Scopes.Updated':
+          await this.handleOrganizationRoleScopesUpdated(payload)
+          break
+        case 'Organization.Membership.Updated':
+          await this.handleOrganizationMembershipUpdated(payload)
+          break
         default:
-          logger.warn({ event, hookId: payload.hookId }, `Unhandled Logto webhook event: ${event}`)
+          console.log(`Unhandled Logto webhook event: ${event} - Hook ID: ${payload.hookId}`)
       }
 
-      return response.status(200).json({
-        success: true,
-        message: 'Webhook processed successfully',
-      })
+      return response.status(200).send({ status: 'success' })
     } catch (error) {
       logger.error({ err: error }, 'Error processing webhook')
-      return response.status(500).json({ error: 'Internal server error' })
+      return response.status(500).send({ error: 'Internal server error' })
     }
   }
 
@@ -241,53 +209,61 @@ export default class LogtoWebhookController {
    * This event is triggered when a user is created in Logto
    */
   private async handleUserCreated(payload: any) {
-    const { data } = payload
+    const data = payload.data
     
-    // Check if user already exists in our database
-    const existingUser = await User.findBy('email', data.primaryEmail)
+    // Check if the user already exists in our database
+    let user = await User.findBy('email', data.primaryEmail)
     
-    if (existingUser) {
-      console.log(`User with email ${data.primaryEmail} already exists, updating...`)
+    if (user) {
+      console.log(`User with email ${data.primaryEmail} already exists, updating Logto ID`)
       
       // Update the existing user with Logto data
-      existingUser.merge({
-        fullName: data.name,
-        email: data.primaryEmail,
-        avatarUrl: data.avatar,
-        // Store the Logto user ID in customData
+      user.merge({
+        // Update the Logto user ID in customData
         customData: {
-          ...existingUser.customData,
+          ...user.customData,
           logtoUserId: data.id,
         },
       })
       
-      await existingUser.save()
-      return
+      await user.save()
+      
+      // Emit user updated event
+      await emitter.emit('user:updated', { user, source: 'logto_webhook' })
+    } else {
+      console.log(`Creating new user with email ${data.primaryEmail} from Logto`)
+      
+      // Create a new user in our database with UUID
+      user = new User()
+      user.id = `usr_${randomUUID()}`
+      user.merge({
+        fullName: data.name,
+        email: data.primaryEmail,
+        avatarUrl: data.avatar,
+        roleId: Roles.USER, // Default role
+        // Store the Logto user ID in customData
+        customData: {
+          logtoUserId: data.id,
+        },
+      })
+      
+      await user.save()
+      
+      // Emit user created event
+      await emitter.emit('user:created', { user, source: 'logto_webhook' })
+      
+      console.log(`Created new user with email ${data.primaryEmail} from Logto`)
     }
-    
-    // Create a new user in our database
-    await User.create({
-      fullName: data.name,
-      email: data.primaryEmail,
-      avatarUrl: data.avatar,
-      roleId: Roles.USER, // Default role
-      // Store the Logto user ID in customData
-      customData: {
-        logtoUserId: data.id,
-      },
-    })
-    
-    console.log(`Created new user with email ${data.primaryEmail} from Logto`)
   }
-  
+
   /**
    * Handle User.Data.Updated event
    * This event is triggered when user data is updated in Logto
    */
   private async handleUserUpdated(payload: any) {
-    const { data } = payload
+    const data = payload.data
     
-    // Find the user in our database by Logto user ID or email
+    // Find the user by Logto ID in customData or by email
     let user = await User.query()
       .where('customData->logtoUserId', data.id)
       .first()
@@ -298,8 +274,7 @@ export default class LogtoWebhookController {
     
     if (!user) {
       console.log(`User with Logto ID ${data.id} not found, creating...`)
-      await this.handleUserCreated(payload)
-      return
+      return await this.handleUserCreated(payload)
     }
     
     // Update the user with the latest data from Logto
@@ -315,9 +290,13 @@ export default class LogtoWebhookController {
     })
     
     await user.save()
+    
+    // Emit user updated event
+    await emitter.emit('user:updated', { user, source: 'logto_webhook' })
+    
     console.log(`Updated user with email ${data.primaryEmail} from Logto`)
   }
-  
+
   /**
    * Handle Organization.Created event
    * This event is triggered when an organization is created in Logto
@@ -326,7 +305,7 @@ export default class LogtoWebhookController {
     // Implement organization creation logic if needed
     console.log('Organization created in Logto:', payload.data)
   }
-  
+
   /**
    * Handle Organization.Data.Updated event
    * This event is triggered when organization data is updated in Logto
@@ -335,7 +314,7 @@ export default class LogtoWebhookController {
     // Implement organization update logic if needed
     console.log('Organization updated in Logto:', payload.data)
   }
-  
+
   /**
    * Handle Organization.User.Added event
    * This event is triggered when a user is added to an organization in Logto
@@ -344,7 +323,7 @@ export default class LogtoWebhookController {
     // Implement organization user added logic if needed
     console.log('User added to organization in Logto:', payload.data)
   }
-  
+
   /**
    * Handle Organization.User.Removed event
    * This event is triggered when a user is removed from an organization in Logto
@@ -356,6 +335,7 @@ export default class LogtoWebhookController {
     const userId = payload.data?.userId
     if (organizationId && userId) {
       // Log the user removal from organization event
+      console.log(`User ${userId} removed from organization ${organizationId}`)
     }
   }
 
@@ -363,12 +343,32 @@ export default class LogtoWebhookController {
    * Handle User.Deleted event
    */
   private async handleUserDeleted(payload: any) {
-    // Implementation for handling user deleted event
-    // Log the event for auditing purposes
-    const userId = payload.data?.id
-    if (userId) {
-      // Log the user deletion event
+    const logtoUserId = payload.data?.id
+    
+    if (!logtoUserId) {
+      console.log('No user ID provided in User.Deleted event')
+      return
     }
+    
+    // Find the user by Logto ID in customData
+    const user = await User.query()
+      .where('customData->logtoUserId', logtoUserId)
+      .first()
+    
+    if (!user) {
+      console.log(`User with Logto ID ${logtoUserId} not found for deletion`)
+      return
+    }
+    
+    const userId = user.id
+    
+    // Delete the user
+    await user.delete()
+    
+    // Emit user deleted event
+    await emitter.emit('user:deleted', { userId })
+    
+    console.log(`Deleted user with ID ${userId} and Logto ID ${logtoUserId}`)
   }
 
   /**
@@ -380,6 +380,7 @@ export default class LogtoWebhookController {
     const organizationId = payload.data?.id
     if (organizationId) {
       // Log the organization deletion event
+      console.log(`Organization deleted: ${organizationId}`)
     }
   }
 
@@ -402,8 +403,10 @@ export default class LogtoWebhookController {
     if (!localUser) {
       console.log(`User with Logto ID ${user.id} not found on sign-in, creating...`)
       
-      // Create a new user in our database
-      await User.create({
+      // Create a new user in our database with UUID
+      localUser = new User()
+      localUser.id = `usr_${randomUUID()}`
+      localUser.merge({
         fullName: user.name,
         email: user.primaryEmail,
         avatarUrl: user.avatar,
@@ -411,8 +414,14 @@ export default class LogtoWebhookController {
         // Store the Logto user ID in customData
         customData: {
           logtoUserId: user.id,
+          lastSignInAt: new Date().toISOString(),
         },
       })
+      
+      await localUser.save()
+      
+      // Emit user created event
+      await emitter.emit('user:created', { user: localUser, source: 'logto_signin' })
       
       console.log(`Created new user with email ${user.primaryEmail} from Logto sign-in`)
     } else {
@@ -425,6 +434,10 @@ export default class LogtoWebhookController {
       })
       
       await localUser.save()
+      
+      // Emit user updated event
+      await emitter.emit('user:updated', { user: localUser, source: 'logto_signin' })
+      
       console.log(`Updated last sign-in time for user with email ${user.primaryEmail}`)
     }
   }
@@ -436,5 +449,85 @@ export default class LogtoWebhookController {
   private async handlePostRegister(payload: any) {
     // This is similar to User.Created but specifically for registration
     await this.handleUserCreated(payload)
+  }
+
+  /**
+   * Handle OrganizationScope.Created event
+   */
+  private async handleOrganizationScopeCreated(payload: any) {
+    const data = payload.data
+    console.log(`Organization scope created: ${data?.id} - ${data?.name}`)
+    // Emit event for organization scope creation
+    await emitter.emit('logto:webhook', { event: 'OrganizationScope.Created', data: payload })
+  }
+
+  /**
+   * Handle OrganizationScope.Data.Updated event
+   */
+  private async handleOrganizationScopeUpdated(payload: any) {
+    const data = payload.data
+    console.log(`Organization scope updated: ${data?.id} - ${data?.name}`)
+    // Emit event for organization scope update
+    await emitter.emit('logto:webhook', { event: 'OrganizationScope.Data.Updated', data: payload })
+  }
+
+  /**
+   * Handle OrganizationScope.Deleted event
+   */
+  private async handleOrganizationScopeDeleted(payload: any) {
+    const data = payload.data
+    console.log(`Organization scope deleted: ${data?.id}`)
+    // Emit event for organization scope deletion
+    await emitter.emit('logto:webhook', { event: 'OrganizationScope.Deleted', data: payload })
+  }
+
+  /**
+   * Handle OrganizationRole.Created event
+   */
+  private async handleOrganizationRoleCreated(payload: any) {
+    const data = payload.data
+    console.log(`Organization role created: ${data?.id} - ${data?.name}`)
+    // Emit event for organization role creation
+    await emitter.emit('logto:webhook', { event: 'OrganizationRole.Created', data: payload })
+  }
+
+  /**
+   * Handle OrganizationRole.Data.Updated event
+   */
+  private async handleOrganizationRoleUpdated(payload: any) {
+    const data = payload.data
+    console.log(`Organization role updated: ${data?.id} - ${data?.name}`)
+    // Emit event for organization role update
+    await emitter.emit('logto:webhook', { event: 'OrganizationRole.Data.Updated', data: payload })
+  }
+
+  /**
+   * Handle OrganizationRole.Deleted event
+   */
+  private async handleOrganizationRoleDeleted(payload: any) {
+    const data = payload.data
+    console.log(`Organization role deleted: ${data?.id}`)
+    // Emit event for organization role deletion
+    await emitter.emit('logto:webhook', { event: 'OrganizationRole.Deleted', data: payload })
+  }
+
+  /**
+   * Handle OrganizationRole.Scopes.Updated event
+   */
+  private async handleOrganizationRoleScopesUpdated(payload: any) {
+    const data = payload.data
+    console.log(`Organization role scopes updated: ${data?.id} - Scopes: ${JSON.stringify(data?.scopes)}`)
+    // Emit event for organization role scopes update
+    await emitter.emit('logto:webhook', { event: 'OrganizationRole.Scopes.Updated', data: payload })
+  }
+
+  /**
+   * Handle Organization.Membership.Updated event
+   */
+  private async handleOrganizationMembershipUpdated(payload: any) {
+    const data = payload.data
+    console.log(`Organization membership updated: Organization ${data?.organizationId} - User ${data?.userId}`)
+    // Emit event for organization membership update
+    await emitter.emit('logto:webhook', { event: 'Organization.Membership.Updated', data: payload })
   }
 }

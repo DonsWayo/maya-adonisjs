@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { cuid } from '@adonisjs/core/helpers'
+import { randomUUID } from 'node:crypto'
+import emitter from '@adonisjs/core/services/emitter'
 
 import User from '#users/models/user'
 import Role from '#users/models/role'
@@ -32,12 +33,14 @@ export default class UsersController {
     const payload = await request.validateUsing(createUserValidator)
 
     const user = new User()
-    user.merge({
-      ...payload,
-      password: payload.password ? payload.password : cuid(),
-    })
+    // Generate a UUID for the user
+    user.id = `usr_${randomUUID()}`
+    user.merge(payload)
 
     await user.save()
+    
+    // Emit event for the new user
+    await emitter.emit('user:created', { user, source: 'admin_panel' })
 
     return response.redirect().toRoute('users.index')
   }
@@ -48,12 +51,12 @@ export default class UsersController {
     await bouncer.with(UserPolicy).authorize('update', user)
 
     const payload = await request.validateUsing(editUserValidator, { meta: { userId: params.id } })
-    user.merge({
-      ...payload,
-      password: payload.password ? payload.password : user.password,
-    })
+    user.merge(payload)
 
     await user.save()
+    
+    // Emit event for the updated user
+    await emitter.emit('user:updated', { user, source: 'admin_panel' })
 
     return response.redirect().toRoute('users.index')
   }
@@ -63,7 +66,11 @@ export default class UsersController {
 
     await bouncer.with(UserPolicy).authorize('delete', user)
 
+    const userId = user.id
     await user.delete()
+    
+    // Emit event for the deleted user
+    await emitter.emit('user:deleted', { userId })
 
     return response.redirect().toRoute('users.index')
   }
