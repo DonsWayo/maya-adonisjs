@@ -1,12 +1,12 @@
 # This docker-compose file is for standalone development of the web app
 # It imports the necessary services from the root docker-compose.yaml to avoid duplication
 
-name: web-standalone
+name: main-standalone
 
 services:
-  # Web application
-  web:
-    container_name: 'web_standalone'
+  # Main application
+  main:
+    container_name: 'main_standalone'
     build:
       context: ../../
       dockerfile: apps/web/Dockerfile

@@ -44,12 +44,12 @@ export default function HeaderSection() {
         </div>
 
         <div className="flex justify-end relative z-50">
-          <Link
+          <a
             className="w-auto rounded-xl font-medium transition-all duration-300 md:font-semibold md:-mx-3 md:items-center md:justify-center px-3 py-2 md:text-sm hover:bg-muted hidden md:block"
             href="/logto/redirect"
           >
             Login
-          </Link>
+          </a>
           <button
             aria-label="Toggle menu"
             onClick={() => setMenuOpen(!menuOpen)}
