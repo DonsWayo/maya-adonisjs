@@ -1,4 +1,4 @@
-import { Subjects } from '#users/ui/context/abilities_context'
+import { Subjects } from '#common/ui/context/abilities_context'
 
 import { LucideIcon } from 'lucide-react'
 

@@ -6,11 +6,11 @@ import AppHeaderLayout from '#common/ui/components/app_header_layout'
 import { NavMainItem } from '#common/ui/types/nav_main'
 
 import useUser from '#auth/ui/hooks/use_user'
-import AbilityProvider from '#users/ui/context/abilities_context'
+import AbilityProvider from '#common/ui/context/abilities_context'
 
 import { ThemeProvider } from '@workspace/ui/components/theme-provider'
 import { Toaster } from '@workspace/ui/components/sonner'
-import { LogOut, Settings, Users } from 'lucide-react'
+import { LogOut, Settings, Users, Building } from 'lucide-react'
 
 interface BreadcrumbItemProps {
   label: string
@@ -35,6 +35,12 @@ const navMain: NavMainItem[] = [
         url: '/users',
         icon: Users,
         subject: 'users',
+      },
+      {
+        title: 'Companies',
+        url: '/companies',
+        icon: Building,
+        subject: 'companies',
       },
     ],
   },

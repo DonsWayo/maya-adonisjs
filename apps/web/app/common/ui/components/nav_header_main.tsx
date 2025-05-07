@@ -2,21 +2,21 @@ import { Link } from '@inertiajs/react'
 
 import { isSection, NavMainItem } from '#common/ui/types/nav_main'
 import HeaderDropdown from '#common/ui/components/header_dropdown'
-import { useAbility } from '#users/ui/context/abilities_context'
+import { useAbility } from '#common/ui/context/abilities_context'
 
 export interface NavHeaderMainProps {
   items: NavMainItem[]
 }
 
 export function NavHeaderMain({ items }: NavHeaderMainProps) {
-  const abilities = useAbility()
+  const { hasPermission } = useAbility()
 
   return (
     <nav className="flex items-center space-x-4">
       {items.map((item, index) => {
         if (isSection(item)) {
           const visibleItems = item.items.filter(
-            (subItem) => !subItem.subject || abilities.can('read', subItem.subject)
+            (subItem) => !subItem.subject || hasPermission('read', subItem.subject)
           )
 
           if (visibleItems.length === 0) {
@@ -61,7 +61,7 @@ export function NavHeaderMain({ items }: NavHeaderMainProps) {
             />
           )
         } else {
-          if (!item.subject || abilities.can('read', item.subject)) {
+          if (!item.subject || hasPermission('read', item.subject)) {
             if (item.external) {
               return (
                 <a

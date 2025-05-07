@@ -31,7 +31,9 @@ export default class WelcomeNotification extends BaseMail {
     )
 
 
-    this.message.to(this.user.email)
+    if (this.user.email) {
+      this.message.to(this.user.email)
+    }
 
     this.message.htmlView('users::emails/welcome', {
       user: this.user,

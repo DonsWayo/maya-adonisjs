@@ -22,6 +22,7 @@
     "#users/*": "./app/users/*.js",
     "#marketing/*": "./app/marketing/*.js",
     "#analytics/*": "./app/analytics/*.js",
+    "#companies/*": "./app/companies/*.js",
     "#providers/*": "./providers/*.js",
     "#tests/*": "./tests/*.js",
     "#webhooks/*": "./app/webhooks/*.js"
@@ -38,8 +39,8 @@
     "@tailwindcss/vite": "^4.1.4",
     "@types/luxon": "^3.6.2",
     "@types/node": "^22.15.3",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.1",
     "eslint": "^9.25.1",
     "hot-hook": "^0.4.0",

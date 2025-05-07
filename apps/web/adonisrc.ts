@@ -79,6 +79,11 @@ export default defineConfig({
     //analytics
     () => import('#analytics/routes'),
 
+    //companies
+    () => import('#companies/start/view'),
+    () => import('#companies/start/events'),
+    () => import('#companies/routes'),
+
     //webhooks
     () => import('#webhooks/routes'),
   ],

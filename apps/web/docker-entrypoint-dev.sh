@@ -9,6 +9,7 @@ sleep 5
 
 # Run migrations
 echo "Running database migrations..."
+# Run default migrations
 node ace migration:run
 
 # Run seeds in development environment

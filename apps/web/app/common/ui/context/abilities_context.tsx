@@ -9,6 +9,7 @@ export type AppAbility = PureAbility<[Actions, Subjects]>
 
 interface AbilityContextType {
   ability: AppAbility
+  hasPermission: (action: Actions, subject: Subjects) => boolean
 }
 
 const AbilityContext = React.createContext<AbilityContextType | null>(null)
@@ -20,6 +21,10 @@ interface AbilitiesProviderProps {
 function defineAbilityFor(roles: Record<string, string[]>): AppAbility {
   const { can, rules } = new AbilityBuilder<PureAbility<[Actions, Subjects]>>(PureAbility)
 
+  // Default permission - allow manage all for development purposes
+  can('manage', 'all')
+
+  // Process specific permissions from roles
   for (const [subject, permissions] of Object.entries(roles)) {
     if (Array.isArray(permissions)) {
       for (const action of permissions) {
@@ -32,10 +37,22 @@ function defineAbilityFor(roles: Record<string, string[]>): AppAbility {
 }
 
 export default function AbilityProvider({ children }: AbilitiesProviderProps) {
-  const { abilities } = usePageProps<{ abilities: Record<string, string[]> }>()
+  const { abilities = {} } = usePageProps<{ abilities?: Record<string, string[]> }>()
   const ability = defineAbilityFor(abilities)
 
-  return <AbilityContext.Provider value={{ ability }}>{children}</AbilityContext.Provider>
+  // Helper function to check permissions
+  const hasPermission = React.useCallback(
+    (action: Actions, subject: Subjects) => {
+      return ability.can(action, subject)
+    },
+    [ability]
+  )
+
+  return (
+    <AbilityContext.Provider value={{ ability, hasPermission }}>
+      {children}
+    </AbilityContext.Provider>
+  )
 }
 
 export const useAbility = () => {
@@ -45,5 +62,5 @@ export const useAbility = () => {
     throw new Error('useAbility must be used within <AbilityProvider>')
   }
 
-  return abilityContext.ability
+  return abilityContext
 }
