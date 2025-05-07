@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => {
   const config: UserConfig = {
     plugins: [
       tailwindcss(),
-      inertia({ ssr: { enabled: true, entrypoint: 'app/core/ui/app/ssr.tsx' } }),
+      //@ts-ignore
+      inertia({ ssr: { enabled: false, entrypoint: 'app/core/ui/app/ssr.tsx' } }),
       react(),
       adonisjs({ entrypoints: ['app/core/ui/app/app.tsx'], reload: ['resources/views/**/*.edge'] }),
     ],

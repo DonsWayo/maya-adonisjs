@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "DEVELOPMENT"
+
 # Wait for database to be ready (optional, can be implemented with a healthcheck)
 echo "Waiting for database to be ready..."
 sleep 5

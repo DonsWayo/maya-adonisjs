@@ -27,7 +27,6 @@
     "#webhooks/*": "./app/webhooks/*.js"
   },
   "devDependencies": {
-    "@workspace/email": "workspace:*",
     "@adonisjs/assembler": "^7.8.2",
     "@adonisjs/eslint-config": "^2.0.0",
     "@adonisjs/prettier-config": "^1.4.4",

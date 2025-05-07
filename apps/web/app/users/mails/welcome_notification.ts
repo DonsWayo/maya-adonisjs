@@ -5,7 +5,7 @@ import router from '@adonisjs/core/services/router'
 import User from '#users/models/user'
 
 export default class WelcomeNotification extends BaseMail {
-  from = env.get('EMAIL_FROM')
+  from = env.get('MAIL_FROM')
   subject = 'Welcome!'
 
   constructor(
@@ -29,6 +29,7 @@ export default class WelcomeNotification extends BaseMail {
       { email: this.user.email },
       { prefixUrl: env.get('APP_URL') }
     )
+
 
     this.message.to(this.user.email)
 

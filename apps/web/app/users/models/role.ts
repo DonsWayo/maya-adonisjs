@@ -7,7 +7,7 @@ import BaseModel from '#common/models/base_model'
 
 export default class Role extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare name: string

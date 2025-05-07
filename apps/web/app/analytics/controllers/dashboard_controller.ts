@@ -1,13 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { sendWelcomeEmail } from '../../mail/index.js'
+import mail from '@adonisjs/mail/services/main'
 
+import WelcomeNotification from '#users/mails/welcome_notification'
 export default class DashboardController {
-  public async handle({ inertia }: HttpContext) {
-    await sendWelcomeEmail(
-      'user@example.com',
-      'John Doe',
-      'https://example.com/welcome'
-    )
+  public async handle({ inertia, auth }: HttpContext) {
+    await mail.send(new WelcomeNotification(auth.user!, "message"))
+
     return inertia.render('analytics/dashboard')
   }
 }
