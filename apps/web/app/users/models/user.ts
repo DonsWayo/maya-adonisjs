@@ -16,7 +16,7 @@ export default class User extends BaseModel {
   declare id: string
 
   @column()
-  declare roleId: number
+  declare roleId: string
 
   @column()
   declare fullName: string | null

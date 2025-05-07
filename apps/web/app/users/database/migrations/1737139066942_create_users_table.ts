@@ -7,17 +7,15 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      // Use UUID as primary key
-      table.uuid('id').primary()
+      // Use UUID as primary key with auto-generation
+      table.uuid('id').primary().defaultTo(this.db.rawQuery('uuid_generate_v4()').knexQuery)
       
-      // Keep existing role relationship
+      // Role relationship with UUID
       table
-        .integer('role_id')
-        .unsigned()
+        .uuid('role_id')
         .references('id')
         .inTable('roles')
         .notNullable()
-        .defaultTo(Roles.USER)
       
       // Basic Logto user fields
       table.string('full_name').nullable()
