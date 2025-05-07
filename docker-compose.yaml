@@ -215,15 +215,15 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: ./apps/web/Dockerfile
+      dockerfile: ./apps/main/Dockerfile
     container_name: maya_main
     volumes:
-      - ./apps/web:/app/apps/web
-      - /app/apps/web/node_modules
+      - ./apps/main:/app/apps/main
+      - /app/apps/main/node_modules
     # Port is only exposed for direct access if needed
     # Traefik will handle routing through labels
     ports:
-      - '${WEB_PORT:-3333}:3333'
+      - '${MAIN_PORT:-3333}:3333'
     depends_on:
       pgsql:
         condition: service_healthy
@@ -288,76 +288,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.docs.rule=Host(`docs.localhost`)"
       - "traefik.http.services.docs.loadbalancer.server.port=3300"
-      
-  # Placeholder for future web2 application
-  # web2:
-  #   container_name: 'maya_web2'
-  #   restart: unless-stopped
-  #   build:
-  #     context: .
-  #     dockerfile: apps/web2/Dockerfile
-  #     target: development
-  #   env_file:
-  #     - apps/web2/.env
-  #   volumes:
-  #     - ./apps/web2:/app/apps/web2
-  #     - /app/apps/web2/node_modules
-  #   networks:
-  #     - maya_network
-  #   depends_on:
-  #     pgsql:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   environment:
-  #     HOST: 0.0.0.0
-  #     PORT: 3334
-  #     NODE_ENV: development
-  #     DB_HOST: pgsql
-  #     REDIS_HOST: redis
-  #   ports:
-  #     - '3334:3334'
-  #   profiles: [web2]
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.web2.rule=Host(`web2.localhost`)"
-  #     - "traefik.http.services.web2.loadbalancer.server.port=3334"
-
-  # Placeholder for future web3 application
-  # web3:
-  #   container_name: 'maya_web3'
-  #   restart: unless-stopped
-  #   build:
-  #     context: .
-  #     dockerfile: apps/web3/Dockerfile
-  #     target: development
-  #   env_file:
-  #     - apps/web3/.env
-  #   volumes:
-  #     - ./apps/web3:/app/apps/web3
-  #     - /app/apps/web3/node_modules
-  #   networks:
-  #     - maya_network
-  #   depends_on:
-  #     pgsql:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   environment:
-  #     HOST: 0.0.0.0
-  #     PORT: 3335
-  #     NODE_ENV: development
-  #     DB_HOST: pgsql
-  #     REDIS_HOST: redis
-  #   ports:
-  #     - '3335:3335'
-  #   profiles: [web3]
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.web3.rule=Host(`web3.localhost`)"
-  #     - "traefik.http.services.web3.loadbalancer.server.port=3335"
-      
-  # Traefik reverse proxy configuration
   traefik:
     image: traefik:v2.9
     container_name: maya_traefik
