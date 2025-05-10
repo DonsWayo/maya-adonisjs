@@ -120,6 +120,8 @@ export class LogtoDriver extends Oauth2Driver<LogtoDriverAccessToken, LogtoDrive
     // Update config
     this.config = config
 
+    console.log('LogtoDriver constructor', { config })
+
     // Set default base URL if not provided
     const logtoUrl = this.config.logtoUrl || 'https://logto.dev'
     

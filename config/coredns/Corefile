@@ -1,0 +1,52 @@
+. {
+    # Forward all queries to Google DNS
+    forward . 8.8.8.8 8.8.4.4
+    
+    # Log all DNS queries for debugging
+    log
+    
+    # Enable caching
+    cache
+    
+    # Handle localhost domains
+    hosts {
+        # Map all *.localhost domains to the Docker host gateway IP
+        # This will allow containers to resolve these domains to the host
+        # where Traefik is running
+        172.17.0.1 *.localhost
+        
+        # Reload hosts file every 10 seconds
+        reload 10s
+        
+        # Continue processing even if hosts match
+        fallthrough
+    }
+    
+    # Enable DNS over TLS
+    tls {
+        except localhost
+    }
+    
+    # Health check endpoint
+    health {
+        lameduck 5s
+    }
+    
+    # Prometheus metrics
+    prometheus :9153
+    
+    # Enable DNS error responses
+    errors
+}
+
+# Special handling for .localhost domains
+localhost {
+    # Map all *.localhost domains to the Docker host gateway IP
+    hosts {
+        172.17.0.1 *.localhost
+        fallthrough
+    }
+    
+    # Log localhost queries
+    log
+}

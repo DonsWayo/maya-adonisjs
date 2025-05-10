@@ -240,6 +240,10 @@ services:
       - "traefik.http.services.main.loadbalancer.server.port=3333"
     networks:
       - maya_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "logto.localhost:host-gateway"
+      - "admin.logto.localhost:host-gateway"
     
         
   # Monitoring application service
@@ -309,6 +313,8 @@ services:
       - "--entrypoints.web.address=:80"
       - "--accesslog=true"
       - "--log.level=DEBUG"
+      - "--providers.docker.defaultRule=Host(`{{ normalize .Name }}.localhost`)"
+      - "--providers.docker.network=maya_network"
       # DNS settings for internal container resolution
       - "--providers.docker.useBindPortIP=false"
     ports:
