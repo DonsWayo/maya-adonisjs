@@ -8,7 +8,6 @@ import type { Attachment } from '@jrmc/adonis-attachment/types/attachment'
 
 import BaseModel from '#common/models/base_model'
 import Role from '#users/models/role'
-import Company from '#companies/models/company'
 
 import Roles from '#users/enums/role'
 
@@ -75,9 +74,6 @@ export default class User extends BaseModel {
 
   @belongsTo(() => Role)
   declare role: BelongsTo<typeof Role>
-
-  @belongsTo(() => Company)
-  declare company: BelongsTo<typeof Company>
 
   @computed()
   get isAdmin() {
