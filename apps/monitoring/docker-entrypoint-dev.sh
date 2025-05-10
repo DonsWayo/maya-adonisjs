@@ -3,14 +3,21 @@ set -e
 
 echo "DEVELOPMENT"
 
-# Wait for database to be ready (optional, can be implemented with a healthcheck)
-echo "Waiting for database to be ready..."
+# Wait for PostgreSQL to be ready (optional, can be implemented with a healthcheck)
+echo "Waiting for PostgreSQL to be ready..."
 sleep 5
 
-# Run migrations
-echo "Running database migrations..."
-# Run default migrations
+# Run PostgreSQL migrations
+echo "Running PostgreSQL migrations..."
 node ace migration:run
+
+# Wait for ClickHouse to be ready
+echo "Waiting for ClickHouse to be ready..."
+sleep 5
+
+# Run ClickHouse migrations
+echo "Running ClickHouse migrations..."
+node ace clickhouse:migrate
 
 # Run seeds in development environment
 echo "Seeding database..."

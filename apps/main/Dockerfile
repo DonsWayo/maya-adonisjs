@@ -10,7 +10,7 @@ RUN corepack enable pnpm
 
 # Copy package files for dependency installation
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/web/package.json ./apps/web/
+COPY apps/main/package.json ./apps/main/
 COPY packages/ ./packages/
 
 # Development stage
@@ -23,14 +23,14 @@ RUN pnpm install
 
 # We'll mount the source code as a volume in docker-compose
 # This is just a placeholder directory
-RUN mkdir -p /app/apps/web
+RUN mkdir -p /app/apps/main
 
-WORKDIR /app/apps/web
+WORKDIR /app/apps/main
 
 EXPOSE 3333
 
 # Add a script to run migrations and seeds in development
-COPY ./apps/web/docker-entrypoint-dev.sh /app/
+COPY ./apps/main/docker-entrypoint-dev.sh /app/
 RUN chmod +x /app/docker-entrypoint-dev.sh
 
 # Command to start the development server with hot reloading
@@ -49,7 +49,7 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Build the application
-WORKDIR /app/apps/web
+WORKDIR /app/apps/main
 RUN node ace build
 
 # Production stage
@@ -60,11 +60,11 @@ RUN apk add --no-cache libc6-compat bash
 WORKDIR /app
 
 # Copy only the built application from the build stage
-COPY --from=build /app/apps/web/build /app
+COPY --from=build /app/apps/main/build /app
 COPY --from=build /app/node_modules /app/node_modules
 
 # Add a script to run migrations in production
-COPY --chown=node:node ./apps/web/docker-entrypoint-prod.sh /app/docker-entrypoint-prod.sh
+COPY --chown=node:node ./apps/main/docker-entrypoint-prod.sh /app/docker-entrypoint-prod.sh
 RUN chmod +x /app/docker-entrypoint-prod.sh
 
 EXPOSE 3333

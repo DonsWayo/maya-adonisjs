@@ -18,8 +18,10 @@
     "#config/*": "./config/*.js",
     "#core/*": "./app/core/*.js",
     "#common/*": "./app/common/*.js",
+    "#error/*": "./app/error/*.js",
     "#auth/*": "./app/auth/*.js",
     "#providers/*": "./providers/*.js",
+    "#users/*": "./app/users/*.js",
     "#tests/*": "./tests/*.js"
   },
   "devDependencies": {

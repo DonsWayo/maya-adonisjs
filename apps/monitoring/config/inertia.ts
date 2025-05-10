@@ -1,9 +1,10 @@
+import UserDto from '#users/dtos/user'
+import User from '#users/models/user'
+import AbilitiesService from '#users/services/abilities_service'
 import { defineConfig } from '@adonisjs/inertia'
 import type { InferSharedProps } from '@adonisjs/inertia/types'
 
-import AbilitiesService from '#users/services/abilities_service'
-import User from '#users/models/user'
-import UserDto from '#users/dtos/user'
+
 
 const inertiaConfig = defineConfig({
   /**

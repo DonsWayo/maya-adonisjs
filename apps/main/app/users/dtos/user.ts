@@ -4,7 +4,7 @@ import User from '#users/models/user'
 
 export default class UserDto extends BaseModelDto {
   declare id: string
-  declare roleId: number
+  declare roleId: string
   declare fullName: string | null
   declare role: string | null
   declare email: string | null

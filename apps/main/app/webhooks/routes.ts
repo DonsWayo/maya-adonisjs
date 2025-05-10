@@ -12,4 +12,3 @@ const LogtoWebhookController = () => import('#webhooks/controllers/logto_webhook
 
 router.post('/api/webhooks/logto', [LogtoWebhookController, 'handle'])
 
-

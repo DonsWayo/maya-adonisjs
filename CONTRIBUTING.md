@@ -56,7 +56,7 @@ The project uses a modular Docker Compose structure:
 
 - `docker-compose.yaml`: Core services definition
 - `docker-compose.prod.yaml`: Development environment configuration
-- `apps/web/docker-compose.yaml`: Web application-specific configuration
+- `apps/main/docker-compose.yaml`: Web application-specific configuration
 
 ### Multi-Stage Dockerfile
 
@@ -69,7 +69,7 @@ To specify which stage to use:
 ```yaml
 build:
   context: .
-  dockerfile: apps/web/Dockerfile
+  dockerfile: apps/main/Dockerfile
   target: development  # or production
 ```
 

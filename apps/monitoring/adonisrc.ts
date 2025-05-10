@@ -17,6 +17,7 @@ export default defineConfig({
     () => import('@adonisjs/mail/commands'),
     () => import('@adonisjs/bouncer/commands'),
     () => import('@jrmc/adonis-attachment/commands'),
+    // Commands in the commands directory are automatically registered
   ],
 
   /*
@@ -69,6 +70,16 @@ export default defineConfig({
     () => import('#auth/start/view'),
     () => import('#auth/start/events'),
     () => import('#auth/routes'),
+
+    //error
+    () => import('#error/start/view'),
+    () => import('#error/start/events'),
+    () => import('#error/routes'),
+
+    //users
+    () => import('#users/start/view'),
+    () => import('#users/start/events'),
+    () => import('#users/routes'),
   ],
 
   /*

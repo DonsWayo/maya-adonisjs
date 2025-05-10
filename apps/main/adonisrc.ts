@@ -50,6 +50,7 @@ export default defineConfig({
     () => import('@adonisjs/ally/ally_provider'),
     () => import('@jrmc/adonis-attachment/attachment_provider'),
     () => import('@adonisjs/drive/drive_provider'),
+    () => import('@adonisjs/redis/redis_provider')
   ],
 
   /*

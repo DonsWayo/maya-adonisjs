@@ -76,15 +76,15 @@ The main application is an AdonisJS 6 app with Inertia.js and React 19 integrati
 main:
   build:
     context: .
-    dockerfile: ./apps/web/Dockerfile
+    dockerfile: ./apps/main/Dockerfile
     target: development
   container_name: 'maya_main'
   restart: unless-stopped
   volumes:
-    - ./apps/web:/app/apps/web
-    - /app/apps/web/node_modules
-    - main_uploads:/app/apps/web/uploads
-    - main_tmp:/app/apps/web/tmp
+    - ./apps/main:/app/apps/main
+    - /app/apps/main/node_modules
+    - main_uploads:/app/apps/main/uploads
+    - main_tmp:/app/apps/main/tmp
   ports:
     - '${WEB_PORT:-3333}:3333'
 ```

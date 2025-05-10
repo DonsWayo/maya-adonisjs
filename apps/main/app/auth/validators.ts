@@ -4,7 +4,7 @@ export const signUpValidator = vine.compile(
   vine.object({
     fullName: vine.string().trim().minLength(3).maxLength(255),
     email: vine.string().email().toLowerCase().trim().unique({ table: 'users', column: 'email' }),
-    password: vine.string().minLength(1).confirmed({ confirmationField: 'passwordConfirmation' }),
+    // Password removed as we're using Logto for authentication
   })
 )
 

@@ -51,7 +51,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   SMTP_USERNAME: Env.schema.string.optional(),
   SMTP_PASSWORD: Env.schema.string.optional(),
   MAIL_FROM: Env.schema.string({ format: 'email' }),
-  
+
   // Optional Resend API key for production
   RESEND_API_KEY: Env.schema.string.optional(),
 
@@ -78,4 +78,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   DRIVE_DISK: Env.schema.enum(['fs'] as const),
+
+  REDIS_HOST: Env.schema.string({ format: 'host' }),
+  REDIS_PORT: Env.schema.number(),
+  REDIS_PASSWORD: Env.schema.string.optional()
 })

@@ -6,7 +6,7 @@ export const createUserValidator = vine.compile(
     email: vine.string().email().toLowerCase().trim().unique({ table: 'users', column: 'email' }).nullable(),
     username: vine.string().trim().minLength(3).maxLength(128).nullable(),
     primaryPhone: vine.string().trim().maxLength(20).nullable(),
-    roleId: vine.number().exists({ table: 'roles', column: 'id' }),
+    roleId: vine.string().exists({ table: 'roles', column: 'id' }),
     externalId: vine.string().trim().maxLength(255).nullable(),
     customData: vine.any().optional(),
   })
@@ -34,7 +34,7 @@ export const inviteUserValidator = vine.compile(
   vine.object({
     email: vine.string().email().toLowerCase().trim().unique({ table: 'users', column: 'email' }),
     description: vine.string().trim().optional(),
-    roleId: vine.number().exists({ table: 'roles', column: 'id' }),
+    roleId: vine.string().exists({ table: 'roles', column: 'id' }),
   })
 )
 
@@ -51,7 +51,7 @@ export const editUserValidator = vine.withMetaData<{ userId: string }>().compile
       .nullable(),
     username: vine.string().trim().minLength(3).maxLength(128).nullable(),
     primaryPhone: vine.string().trim().maxLength(20).nullable(),
-    roleId: vine.number().exists({ table: 'roles', column: 'id' }),
+    roleId: vine.string().exists({ table: 'roles', column: 'id' }),
     externalId: vine.string().trim().maxLength(255).nullable(),
     customData: vine.any().optional(),
   })

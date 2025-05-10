@@ -233,7 +233,31 @@ services:
         condition: service_healthy
       logto:
         condition: service_started
-    # Add extra_hosts entries for domain resolution using Docker host gateway
+        
+  # Monitoring application service
+  monitoring:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./apps/monitoring/Dockerfile
+      target: development
+    container_name: maya_monitoring
+    volumes:
+      - ./apps/monitoring:/app/apps/monitoring
+      - /app/apps/monitoring/node_modules
+    # Port is only exposed for direct access if needed
+    # Traefik will handle routing through labels
+    ports:
+      - '${MONITORING_PORT:-3334}:3334'
+    depends_on:
+      pgsql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_started
+    env_file:
+      - ./apps/monitoring/.env
     extra_hosts:
       - "logto.localhost:host-gateway"
       - "admin.logto.localhost:host-gateway"
@@ -253,18 +277,8 @@ services:
       LOGTO_WEBHOOK_SIGNING_KEY: ${LOGTO_WEBHOOK_SIGNING_KEY:-q0TWqUY9CrxaDI0pXmeLQbnFnNRnoGQt}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.main.rule=Host(`main.localhost`) || Host(`localhost`)"
-      - "traefik.http.routers.main.service=main-app"
-      - "traefik.http.services.main-app.loadbalancer.server.port=3333"
-      - "traefik.http.middlewares.main-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD"
-      - "traefik.http.middlewares.main-cors.headers.accesscontrolalloworiginlist=*"
-      - "traefik.http.middlewares.main-cors.headers.accesscontrolallowheaders=*"
-      - "traefik.http.middlewares.main-cors.headers.accesscontrolallowcredentials=true"
-      - "traefik.http.middlewares.main-cors.headers.accesscontrolmaxage=3600"
-      - "traefik.http.middlewares.main-cors.headers.addvaryheader=true"
-      - "traefik.http.routers.main.middlewares=main-cors@docker"
-    # You can uncomment the following line to disable this service when not needed
-    # profiles: [dev]
+      - "traefik.http.routers.monitoring.rule=Host(`monitoring.localhost`)"
+      - "traefik.http.services.monitoring.loadbalancer.server.port=3334"
     networks:
       - maya_network
   # Documentation app (Next.js)

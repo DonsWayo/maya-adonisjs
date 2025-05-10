@@ -9,13 +9,13 @@ services:
     container_name: 'main_standalone'
     build:
       context: ../../
-      dockerfile: apps/web/Dockerfile
+      dockerfile: apps/main/Dockerfile
       target: development
     env_file:
       - .env
     volumes:
-      - ./:/app/apps/web
-      - /app/apps/web/node_modules
+      - ./:/app/apps/main
+      - /app/apps/main/node_modules
     networks:
       - maya_network
     depends_on:

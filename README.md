@@ -37,14 +37,14 @@ pnpm create adonisjs@latest -K="filipebraida/adonisjs-starter-kit"
    Duplicate the example file to create your own environment configuration.
 
 ```bash
-cp apps/web/.env.example apps/web/.env
+cp apps/main/.env.example apps/main/.env
 ```
 
 2. **Generate the App Key**  
    Generate a cryptographically secure key and assign it to the `APP_KEY` environment variable.
 
 ```bash
-node apps/web/ace generate:key
+node apps/main/ace generate:key
 ```
 
 3. **Configure Social Auth & Email**  
@@ -110,7 +110,7 @@ This command launches the AdonisJS server along with any associated applications
 To add a new UI component using ShadCN, execute:
 
 ```bash
-pnpm dlx shadcn@latest add button -c apps/web
+pnpm dlx shadcn@latest add button -c apps/main
 ```
 
 Replace `button` with the name of the component you wish to add.

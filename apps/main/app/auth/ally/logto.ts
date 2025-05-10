@@ -56,21 +56,21 @@ export class LogtoDriver extends Oauth2Driver<LogtoDriverAccessToken, LogtoDrive
    *
    * Do not define query strings in this URL.
    */
-  protected authorizeUrl
+  protected authorizeUrl: string
 
   /**
    * The URL to hit to exchange the authorization code for the access token
    *
    * Do not define query strings in this URL.
    */
-  protected accessTokenUrl
+  protected accessTokenUrl: string
 
   /**
    * The URL to hit to get the user details
    *
    * Do not define query strings in this URL.
    */
-  protected userInfoUrl
+  protected userInfoUrl: string
 
   /**
    * The param name for the authorization code. Read the documentation of your oauth
@@ -120,14 +120,17 @@ export class LogtoDriver extends Oauth2Driver<LogtoDriverAccessToken, LogtoDrive
     // Update config
     this.config = config
 
+    // Set default base URL if not provided
+    const logtoUrl = this.config.logtoUrl || 'https://logto.dev'
+    
     // Build authorizeUrl if not defined
-    this.authorizeUrl = this.config.authorizeUrl
+    this.authorizeUrl = this.config.authorizeUrl || `${logtoUrl}/oidc/auth`
 
     // Build accessTokenUrl if not defined
-    this.accessTokenUrl = this.config.accessTokenUrl
+    this.accessTokenUrl = this.config.accessTokenUrl || `${logtoUrl}/oidc/token`
 
     // Build userInfoUrl if not defined
-    this.userInfoUrl = this.config.userInfoUrl
+    this.userInfoUrl = this.config.userInfoUrl || `${logtoUrl}/oidc/userinfo`
 
     /**
      * Extremely important to call the following method to clear the
@@ -187,6 +190,11 @@ export class LogtoDriver extends Oauth2Driver<LogtoDriverAccessToken, LogtoDrive
    * Fetches the user info from the Logto API
    */
   protected async getUserInfo(token: string, callback?: (request: ApiRequestContract) => void) {
+    // Ensure token is a string
+    if (!token) {
+      throw new Error('Access token is required to fetch user info')
+    }
+    
     const request = this.getAuthenticatedRequest(this.userInfoUrl, token)
     if (typeof callback === 'function') {
       callback(request)

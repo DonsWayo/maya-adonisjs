@@ -41,4 +41,3 @@ router
 
 router.post('/api/tokens', [TokensController, 'store']).middleware(middleware.auth())
 
-// Removed password routes - will be handled by Logto

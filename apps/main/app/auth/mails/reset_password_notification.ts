@@ -30,6 +30,10 @@ export default class ResetPasswordNotification extends BaseMail {
       { expiresIn: '30m', prefixUrl: env.get('APP_URL'), purpose: 'reset_password' }
     )
 
+    if (!this.user.email) {
+      throw new Error('Cannot send password reset email: User has no email address')
+    }
+    
     this.message.to(this.user.email)
 
     this.message.htmlView('auth::emails/forgot_password', { signedUrl })

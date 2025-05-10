@@ -2,7 +2,7 @@ import { BaseModelDto } from '@adocasts.com/dto/base'
 import Role from '#users/models/role'
 
 export default class RoleDto extends BaseModelDto {
-  declare id: number
+  declare id: string
   declare name: string
   declare description: string
 
