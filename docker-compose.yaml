@@ -216,6 +216,7 @@ services:
     build:
       context: .
       dockerfile: ./apps/main/Dockerfile
+      target: development
     container_name: maya_main
     volumes:
       - ./apps/main:/app/apps/main
@@ -233,6 +234,13 @@ services:
         condition: service_healthy
       logto:
         condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.main.rule=Host(`main.localhost`)"
+      - "traefik.http.services.main.loadbalancer.server.port=3333"
+    networks:
+      - maya_network
+    
         
   # Monitoring application service
   monitoring:
@@ -261,20 +269,6 @@ services:
     extra_hosts:
       - "logto.localhost:host-gateway"
       - "admin.logto.localhost:host-gateway"
-    environment:
-      HOST: 0.0.0.0
-      PORT: 3333
-      NODE_ENV: ${NODE_ENV:-development}
-      DB_HOST: pgsql
-      REDIS_HOST: redis
-      # Internal URLs for container-to-container communication
-      LOGTO_URL: http://logto.localhost/oidc/auth
-      LOGTO_AUTHORIZE_URL: http://logto.localhost/oidc/auth
-      LOGTO_ACCESS_TOKEN_URL: http://logto.localhost/oidc/token
-      LOGTO_USER_INFO_URL: http://logto.localhost/oidc/me
-      LOGTO_CALLBACK_URL: http://main.localhost/logto/callback
-      APP_URL: http://main.localhost
-      LOGTO_WEBHOOK_SIGNING_KEY: ${LOGTO_WEBHOOK_SIGNING_KEY:-q0TWqUY9CrxaDI0pXmeLQbnFnNRnoGQt}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.monitoring.rule=Host(`monitoring.localhost`)"

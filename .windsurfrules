@@ -1,0 +1,73 @@
+Project Overview
+Your project is a sophisticated monorepo built with AdonisJS, following a modular architecture with several key components:
+
+Main Application: An AdonisJS web application with React/Inertia.js frontend
+Monitoring Application: A separate app focused on error monitoring and analytics
+Documentation Site: A Next.js based documentation portal
+Shared UI Package: A component library using React, TailwindCSS, and Shadcn/UI
+Key Technologies
+Backend: AdonisJS 6 (Node.js framework)
+Frontend: React 19 with Inertia.js and TailwindCSS
+UI Components: Shadcn/UI with Radix primitives
+Authentication: Hybrid system with Logto integration
+Database: PostgreSQL with TimescaleDB and PgAI extensions
+Analytics: ClickHouse for data warehousing
+DevOps: Docker Compose for containerized development
+Architecture Highlights
+Modular Structure:
+Clear separation between apps and packages
+Domain-driven design with modules for auth, users, companies, marketing, analytics, and webhooks
+Authentication System:
+Logto integration for identity management
+Social authentication (Google, Logto)
+Webhook system for user management events
+User Management:
+Role-based access control (Admin, User roles)
+Company-user relationships
+API token management
+Docker Integration:
+Complete development environment with Docker Compose
+Services for database, cache, authentication, email testing, etc.
+Traefik for service routing
+AI Capabilities:
+PgAI integration with PostgreSQL
+Ollama for AI model inference
+Gemma 3 model support
+Key Features
+User Management: Complete user CRUD with role-based permissions
+Company Management: Organization structure with user associations
+Authentication: Multiple authentication methods including social login
+API Tokens: Personal access token generation for API access
+Webhooks: Integration with Logto for real-time user events
+UI Components: Comprehensive UI library with Shadcn/UI
+Layouts: Multiple layout options (sidebar and header layouts)
+Analytics: ClickHouse integration for data analysis
+Development Environment
+The project uses a sophisticated Docker Compose setup with:
+
+PostgreSQL with PgAI: Database with AI capabilities
+Redis: For caching and session management
+ClickHouse: For analytics data
+Logto: Authentication and user management
+MailHog: Email testing
+Ollama: AI model inference
+Traefik: Service routing and discovery
+MinIO: S3-compatible object storage
+Project Structure
+The codebase follows a well-organized structure:
+
+Apps Directory: Contains the main applications
+main: Primary AdonisJS application
+monitoring: Error tracking and analytics
+docs: Documentation site
+Packages Directory: Shared libraries
+ui: Shadcn/UI components
+eslint-config: Shared ESLint configuration
+typescript-config: Shared TypeScript configuration
+Domain-Based Modules: Within each app
+auth: Authentication and authorization
+users: User management
+companies: Company management
+analytics: Analytics and reporting
+webhooks: External integrations
+This architecture provides excellent separation of concerns, making the codebase maintainable and scalable as the project grows.
