@@ -9,7 +9,7 @@ export default class extends BaseSchema {
       table.uuid('id').primary().defaultTo(this.db.rawQuery('uuid_generate_v4()').knexQuery)
       
       // Basic company fields
-      table.string('name').notNullable()
+      table.string('name').notNullable().unique()
       table.text('description').nullable()
       table.string('website').nullable()
       table.string('email', 254).nullable().unique()

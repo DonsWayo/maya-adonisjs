@@ -1,13 +1,14 @@
 import React, { useRef, useState } from 'react'
 import { useForm } from '@inertiajs/react'
+import { Upload } from 'lucide-react'
 
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Label } from '@workspace/ui/components/label'
 import { Progress } from '@workspace/ui/components/progress'
 import { Textarea } from '@workspace/ui/components/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select'
 import { toast } from '@workspace/ui/hooks/use-toast'
-// Use a div with text instead of Lucide icon to avoid TypeScript errors
 
 import type CompanyDto from '#companies/dtos/company'
 import type UserDto from '#users/dtos/user'
@@ -89,15 +90,15 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
     <form onSubmit={handleSubmit} className="space-y-6 p-0.5" encType="multipart/form-data">
       <div className="col-span-full flex items-center gap-x-8">
         <div className="h-24 w-24 flex-none">
-          {previewUrl !== undefined || company?.logoUrl ? (
+          {previewUrl || (company?.logoUrl) ? (
             <img 
-              src={previewUrl !== undefined ? previewUrl : (company?.logoUrl || '')} 
+              src={previewUrl || (company?.logoUrl || '')} 
               alt="Company logo" 
               className="h-24 w-24 rounded-lg object-cover"
             />
           ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-gray-100">
-              <div className="text-gray-400 text-xl font-bold">Co.</div>
+            <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-muted">
+              <Upload className="h-10 w-10 text-muted-foreground" />
             </div>
           )}
         </div>
@@ -106,7 +107,7 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
           <Button type="button" onClick={() => logoInputRef.current?.click()}>
             {company?.logoUrl ? 'Change logo' : 'Add logo'}
           </Button>
-          <p className="mt-2 text-xs/5">JPG, GIF or PNG. 1MB max.</p>
+          <p className="mt-2 text-xs/5 text-muted-foreground">JPG, GIF or PNG. 1MB max.</p>
         </div>
       </div>
 
@@ -214,19 +215,18 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
           <Label htmlFor="ownerId" className="mb-1 text-gray-700">
             Owner
           </Label>
-          <select
-            id="ownerId"
-            value={data.ownerId}
-            onChange={(e) => setData('ownerId', e.target.value)}
-            className={`w-full rounded-md border ${errors?.ownerId ? 'border-red-500' : 'border-input'} bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
-          >
-            <option value="">Select an owner</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.fullName || user.email}
-              </option>
-            ))}
-          </select>
+          <Select value={data.ownerId} onValueChange={(value) => setData('ownerId', value)}>
+            <SelectTrigger className={errors?.ownerId ? 'border-red-500' : ''}>
+              <SelectValue placeholder="Select an owner" />
+            </SelectTrigger>
+            <SelectContent>
+              {users.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.fullName || user.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors?.ownerId && (
             <p className="text-[0.8rem] font-medium text-destructive">{errors.ownerId}</p>
           )}
@@ -256,7 +256,7 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
           </Label>
           <Input
             id="city"
-            placeholder="New York"
+            placeholder="City"
             value={data.city}
             onChange={(e) => setData('city', e.target.value)}
             className={errors?.city ? 'border-red-500' : ''}
@@ -272,7 +272,7 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
           </Label>
           <Input
             id="state"
-            placeholder="NY"
+            placeholder="State/Province"
             value={data.state}
             onChange={(e) => setData('state', e.target.value)}
             className={errors?.state ? 'border-red-500' : ''}
@@ -290,7 +290,7 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
           </Label>
           <Input
             id="postalCode"
-            placeholder="10001"
+            placeholder="Postal Code"
             value={data.postalCode}
             onChange={(e) => setData('postalCode', e.target.value)}
             className={errors?.postalCode ? 'border-red-500' : ''}
@@ -306,7 +306,7 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
           </Label>
           <Input
             id="country"
-            placeholder="United States"
+            placeholder="Country"
             value={data.country}
             onChange={(e) => setData('country', e.target.value)}
             className={errors?.country ? 'border-red-500' : ''}
@@ -320,7 +320,6 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
       {progress && (
         <Progress
           value={progress.percentage}
-          max={100}
           className="w-full h-2 bg-gray-200 rounded mt-2"
         />
       )}

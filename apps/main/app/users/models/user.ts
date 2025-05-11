@@ -1,5 +1,5 @@
-import { belongsTo, column, computed } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { belongsTo, column, computed, manyToMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import { DateTime } from 'luxon'
 
@@ -39,9 +39,6 @@ export default class User extends BaseModel {
   
   @column()
   declare externalId: string | null
-  
-  @column()
-  declare companyId: string | null
 
   @attachment({ preComputeUrl: false })
   declare avatar: Attachment
@@ -76,8 +73,13 @@ export default class User extends BaseModel {
   @belongsTo(() => Role)
   declare role: BelongsTo<typeof Role>
 
-  @belongsTo(() => Company)
-  declare company: BelongsTo<typeof Company>
+  @manyToMany(() => Company, {
+    pivotTable: 'user_companies',
+    pivotForeignKey: 'user_id',
+    pivotRelatedForeignKey: 'company_id',
+    pivotColumns: ['role', 'is_primary', 'custom_data']
+  })
+  declare companies: ManyToMany<typeof Company>
 
   @computed()
   get isAdmin() {

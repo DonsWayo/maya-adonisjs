@@ -9,7 +9,7 @@ export default class CompanyPolicy extends BasePolicy {
     return currentUser.isAdmin
   }
 
-  view(currentUser: User, company: Company): AuthorizerResponse {
+  async view(currentUser: User, company: Company): Promise<AuthorizerResponse> {
     // Admin can view any company
     if (currentUser.isAdmin) {
       return true
@@ -20,12 +20,17 @@ export default class CompanyPolicy extends BasePolicy {
       return true
     }
     
-    // User can view company they belong to
-    return currentUser.companyId === company.id
+    // Check if user belongs to this company using the ORM relationship
+    await currentUser.load('companies', (query) => {
+      query.where('id', company.id)
+    })
+    
+    return currentUser.companies.length > 0
   }
 
-  create(currentUser: User): AuthorizerResponse {
-    return currentUser.isAdmin
+  create(_currentUser: User): AuthorizerResponse {
+    // Allow any authenticated user to create a company
+    return true
   }
 
   update(currentUser: User, company: Company): AuthorizerResponse {

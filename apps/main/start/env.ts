@@ -71,6 +71,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   LOGTO_CLIENT_SECRET: Env.schema.string(),
   LOGTO_CALLBACK_URL: Env.schema.string(),
   LOGTO_WEBHOOK_SIGNING_KEY: Env.schema.string(),
+  LOGTO_M2M_CLIENT_ID: Env.schema.string(),
+  LOGTO_M2M_CLIENT_SECRET: Env.schema.string(),
 
   /*
   |----------------------------------------------------------

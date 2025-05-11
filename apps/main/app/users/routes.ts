@@ -39,5 +39,8 @@ router
   .middleware('*', middleware.auth())
   .as('tokens')
 
-router.post('/api/tokens', [TokensController, 'store']).middleware(middleware.auth())
+router.post('/api/tokens', [TokensController, 'store'])
+  .middleware([middleware.auth(), middleware.logtoJwt()])
+  // Apply permission check for token creation
+  .middleware(middleware.logtoPermission())
 

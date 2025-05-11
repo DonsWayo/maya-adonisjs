@@ -76,6 +76,20 @@ export default class SocialController {
 
     await auth.use('web').login(user)
 
-    return response.redirect().toRoute(afterAuthRedirectRoute)
+    // Check if the user has any companies using the ORM
+    await user.load('companies', (query) => {
+      query.where('is_primary', true)
+    })
+    
+    // If user has a primary company, redirect to that company
+    if (user.companies && user.companies.length > 0) {
+      const primaryCompany = user.companies[0]
+      return response.redirect().toRoute('companies.show', { id: primaryCompany.id })
+    }
+    
+    // If user has no companies, redirect to company creation page
+    // Store the intended URL in case we need to redirect back after company creation
+    session.put('intended_url', afterAuthRedirectRoute)
+    return response.redirect().toRoute('companies.create')
   }
 }

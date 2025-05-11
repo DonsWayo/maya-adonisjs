@@ -13,5 +13,5 @@ const CompaniesController = () => import('#companies/controllers/companies_contr
 
 router
   .resource('/companies', CompaniesController)
-  .only(['index', 'store', 'show', 'update', 'destroy'])
+  .only(['index', 'create', 'store', 'show', 'update', 'destroy'])
   .use('*', middleware.auth())
