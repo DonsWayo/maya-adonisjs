@@ -1,25 +1,28 @@
 import { defineConfig } from '@adonisjs/auth'
-import { sessionGuard, sessionUserProvider } from '@adonisjs/auth/session'
+import { sessionGuard } from '@adonisjs/auth/session'
 import type { InferAuthenticators, InferAuthEvents, Authenticators } from '@adonisjs/auth/types'
-import { tokensGuard, tokensUserProvider } from '@adonisjs/auth/access_tokens'
+import { mainAppUserProvider } from '../app/auth/providers/main_app_user_provider.js'
 
-export const afterAuthRedirectRoute = 'dashboard.show'
-export const afterAuthLogoutRedirectRoute = 'marketing.show'
+/**
+ * Routes to redirect to after authentication events
+ */
+export const afterAuthRedirectRoute = '/projects'
+export const afterAuthLogoutRedirectRoute = '/login'
 
+/**
+ * Define auth configuration
+ * 
+ * We're using the session guard with a custom user provider that fetches
+ * user data from the main app instead of a local database model.
+ * This approach avoids duplicating user data and keeps the main app
+ * as the source of truth for user information.
+ */
 const authConfig = defineConfig({
   default: 'web',
   guards: {
     web: sessionGuard({
       useRememberMeTokens: false,
-      provider: sessionUserProvider({
-        model: () => import('#users/models/user'),
-      }),
-    }),
-    api: tokensGuard({
-      provider: tokensUserProvider({
-        tokens: 'accessTokens',
-        model: () => import('#users/models/user'),
-      }),
+      provider: mainAppUserProvider(),
     }),
   },
 })

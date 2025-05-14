@@ -15,6 +15,7 @@ export default class UserDto extends BaseModelDto {
   declare lastSignInAt: string | null
   declare createdAt: string
   declare updatedAt: string | null
+  declare companies: any[] | null
 
   constructor(user?: User) {
     super()
@@ -33,5 +34,12 @@ export default class UserDto extends BaseModelDto {
     this.lastSignInAt = user.lastSignInAt ? user.lastSignInAt.toISO() : null
     this.createdAt = user.createdAt.toISO() || ''
     this.updatedAt = user.updatedAt ? user.updatedAt.toISO() || null : null
+    
+    // Include companies if they are loaded
+    if (user.$preloaded.companies && Array.isArray(user.$preloaded.companies)) {
+      this.companies = user.$preloaded.companies
+    } else {
+      this.companies = null
+    }
   }
 }

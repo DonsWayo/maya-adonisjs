@@ -12,7 +12,7 @@ export const createCompanyValidator = vine.compile(
     state: vine.string().trim().nullable(),
     postalCode: vine.string().trim().nullable(),
     country: vine.string().trim().nullable(),
-    ownerId: vine.string().exists({ table: 'users', column: 'id' }).nullable(),
+    // Owner is now managed through user_companies relationship
     logo: vine
       .file({
         extnames: ['png', 'jpg', 'jpeg', 'svg'],
@@ -35,7 +35,7 @@ export const editCompanyValidator = vine.withMetaData<{ companyId: string }>().c
     state: vine.string().trim().nullable(),
     postalCode: vine.string().trim().nullable(),
     country: vine.string().trim().nullable(),
-    ownerId: vine.string().exists({ table: 'users', column: 'id' }).nullable(),
+    // Owner is now managed through user_companies relationship
     logo: vine
       .file({
         extnames: ['png', 'jpg', 'jpeg', 'svg'],

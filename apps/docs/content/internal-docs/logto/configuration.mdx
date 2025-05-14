@@ -1,0 +1,249 @@
+---
+title: Logto Configuration
+description: Detailed documentation of the Logto integration configuration
+---
+
+# Logto Configuration
+
+This document details how to configure the Logto integration in our application, including environment variables, AdonisJS configuration, and deployment considerations.
+
+## Environment Variables
+
+The Logto integration uses the following environment variables:
+
+```
+# Logto Configuration
+LOGTO_ENDPOINT=http://logto.localhost
+LOGTO_APP_ID=your-app-id
+LOGTO_APP_SECRET=your-app-secret
+LOGTO_API_RESOURCE=https://default.logto.app/api
+LOGTO_CALLBACK_URL=http://main.localhost/logto/callback
+```
+
+### Environment Variable Details
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `LOGTO_ENDPOINT` | The base URL of your Logto instance | `http://logto.localhost` |
+| `LOGTO_APP_ID` | The client ID of your Logto application | `builtinzkfmzb1j9gy0t` |
+| `LOGTO_APP_SECRET` | The client secret of your Logto application | `eDi7jK9X3Jx7P8Y5tQ2Z` |
+| `LOGTO_API_RESOURCE` | The API resource identifier for the Logto Management API | `https://default.logto.app/api` |
+| `LOGTO_CALLBACK_URL` | The callback URL for the OAuth flow | `http://main.localhost/logto/callback` |
+
+## AdonisJS Configuration
+
+### Auth Configuration
+
+The Logto driver is configured in the AdonisJS auth configuration:
+
+```typescript
+// config/auth.ts
+import { authConfig } from '@adonisjs/auth/config'
+import env from '#start/env'
+
+export default authConfig({
+  // ...
+  guards: {
+    // ...
+    logto: {
+      driver: 'logto',
+      logtoUrl: env.get('LOGTO_ENDPOINT') + '/oidc/auth',
+      authorizeUrl: env.get('LOGTO_ENDPOINT') + '/oidc/auth',
+      accessTokenUrl: env.get('LOGTO_ENDPOINT') + '/oidc/token',
+      userInfoUrl: env.get('LOGTO_ENDPOINT') + '/oidc/me',
+      clientId: env.get('LOGTO_APP_ID'),
+      clientSecret: env.get('LOGTO_APP_SECRET'),
+      callbackUrl: env.get('LOGTO_CALLBACK_URL'),
+    },
+  },
+})
+```
+
+### Provider Registration
+
+Register the Logto provider in your application:
+
+```typescript
+// providers/AppProvider.ts
+import { ApplicationContract } from '@ioc:Adonis/Core/Application'
+
+export default class AppProvider {
+  constructor(protected app: ApplicationContract) {}
+
+  public register() {
+    // Register providers
+  }
+
+  public async boot() {
+    // Boot providers
+    const Auth = this.app.container.use('Adonis/Addons/Auth')
+    
+    // Register Logto driver
+    Auth.extend('logto', (_, __, config) => {
+      return new (require('../app/auth/logto/drivers/logto_driver').default)(config, {})
+    })
+  }
+
+  public async ready() {
+    // App is ready
+  }
+
+  public async shutdown() {
+    // Cleanup, since app is going down
+  }
+}
+```
+
+### Route Configuration
+
+Configure the routes for Logto authentication:
+
+```typescript
+// start/routes.ts
+import Route from '@ioc:Adonis/Core/Route'
+
+// Authentication routes
+Route.get('/login', 'AuthController.login')
+Route.get('/logout', 'AuthController.logout')
+Route.get('/logto/callback', 'AuthController.callback')
+
+// Protected routes
+Route.group(() => {
+  // Routes that require authentication
+  Route.get('/dashboard', 'DashboardController.index')
+  
+  // Company routes
+  Route.resource('companies', 'CompaniesController')
+}).middleware('auth')
+```
+
+## Docker Configuration
+
+If you're using Docker, ensure that the Logto service is properly configured in your `docker-compose.yml` file:
+
+```yaml
+# docker-compose.yml
+services:
+  # ...
+  logto:
+    image: ghcr.io/logto-io/logto:latest
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_URL=postgres://postgres:postgres@postgres:5432/logto
+      - ENDPOINT=http://logto.localhost
+      - TRUST_PROXY_HEADER=1
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.logto.rule=Host(`logto.localhost`)"
+      - "traefik.http.services.logto.loadbalancer.server.port=3001"
+```
+
+## Logto Application Setup
+
+### Creating a Logto Application
+
+1. Log in to your Logto Admin Console
+2. Go to "Applications" and click "Create Application"
+3. Select "Traditional Web" as the application type
+4. Enter a name for your application
+5. Configure the redirect URI: `http://main.localhost/logto/callback`
+6. Save the application
+
+### Configuring Organization Roles
+
+1. Log in to your Logto Admin Console
+2. Go to "Roles" and click "Create Role"
+3. Create the following roles:
+   - `admin` with description "Administrator of the organization"
+   - `member` with description "Member of the organization"
+4. Assign the roles to your organization
+
+## Deployment Considerations
+
+### Production Environment
+
+For production environments, ensure that:
+
+1. You use HTTPS for all Logto endpoints
+2. You set secure and unique values for all environment variables
+3. You configure proper CORS settings in Logto
+
+Example production environment variables:
+
+```
+LOGTO_ENDPOINT=https://auth.yourdomain.com
+LOGTO_APP_ID=your-production-app-id
+LOGTO_APP_SECRET=your-production-app-secret
+LOGTO_API_RESOURCE=https://default.logto.app/api
+LOGTO_CALLBACK_URL=https://app.yourdomain.com/logto/callback
+```
+
+### Multi-Environment Setup
+
+For multiple environments (development, staging, production), you can:
+
+1. Use different Logto instances for each environment
+2. Use different applications within the same Logto instance
+3. Configure environment-specific environment variables
+
+Example `.env.staging` file:
+
+```
+LOGTO_ENDPOINT=https://auth-staging.yourdomain.com
+LOGTO_APP_ID=your-staging-app-id
+LOGTO_APP_SECRET=your-staging-app-secret
+LOGTO_API_RESOURCE=https://default.logto.app/api
+LOGTO_CALLBACK_URL=https://app-staging.yourdomain.com/logto/callback
+```
+
+## Troubleshooting Configuration Issues
+
+### Common Configuration Issues
+
+1. **Incorrect Endpoint**: Ensure that `LOGTO_ENDPOINT` points to the correct Logto instance
+2. **Invalid Credentials**: Verify that `LOGTO_APP_ID` and `LOGTO_APP_SECRET` are correct
+3. **Callback URL Mismatch**: Ensure that `LOGTO_CALLBACK_URL` matches the redirect URI configured in Logto
+4. **CORS Issues**: Configure CORS in Logto to allow requests from your application
+
+### Debugging Configuration
+
+To debug configuration issues:
+
+1. Enable debug logging:
+
+```typescript
+// config/app.ts
+export const logLevel = 'debug'
+```
+
+2. Check the logs for authentication errors:
+
+```
+tail -f tmp/adonis.log | grep "Logto"
+```
+
+3. Verify environment variables:
+
+```typescript
+// In a route handler
+Route.get('/debug', ({ response }) => {
+  return response.json({
+    logtoEndpoint: env.get('LOGTO_ENDPOINT'),
+    logtoAppId: env.get('LOGTO_APP_ID'),
+    logtoCallbackUrl: env.get('LOGTO_CALLBACK_URL'),
+  })
+})
+```
+
+## Next Steps
+
+For more information about other aspects of our Logto integration, please refer to:
+
+- [Authentication](./authentication) - Details on the authentication flow
+- [Organization Management](./organization-management) - Details on organization management
+- [API Integration](./api-integration) - Details on the Logto Management API integration

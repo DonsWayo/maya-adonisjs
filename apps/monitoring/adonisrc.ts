@@ -68,7 +68,7 @@ export default defineConfig({
 
     //auth
     () => import('#auth/start/view'),
-    () => import('#auth/start/events'),
+    //() => import('#auth/start/events'),
     () => import('#auth/routes'),
 
     //error
@@ -76,9 +76,8 @@ export default defineConfig({
     () => import('#error/start/events'),
     () => import('#error/routes'),
 
-    //users
-    () => import('#users/start/view'),
-    () => import('#users/start/events'),
+    //core
+    () => import('#core/routes'),
   ],
 
   /*

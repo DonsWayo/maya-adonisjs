@@ -1,5 +1,5 @@
-import { belongsTo, column, manyToMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { column, manyToMany } from '@adonisjs/lucid/orm'
+import type { ManyToMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 import { attachment, attachmentManager } from '@jrmc/adonis-attachment'
@@ -42,8 +42,7 @@ export default class Company extends BaseModel {
   @column()
   declare country: string | null
 
-  @column()
-  declare ownerId: string | null
+  // Owner relationship is managed through user_companies relationship with role='admin'
   
   @column()
   declare externalId: string | null
@@ -66,10 +65,7 @@ export default class Company extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 
-  @belongsTo(() => User, {
-    foreignKey: 'ownerId',
-  })
-  declare owner: BelongsTo<typeof User>
+  // Company-user relationship methods are handled through the ManyToMany relationship
 
   @manyToMany(() => User, {
     pivotTable: 'user_companies',

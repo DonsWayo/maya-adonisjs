@@ -50,7 +50,7 @@ export function CompaniesTable({ companies, users }: DataTableProps) {
                     rel="noopener noreferrer"
                     className="text-xs hover:underline"
                   >
-                    {company.website.replace(/^https?:\/\//, '')}
+                    {company.website}
                   </a>
                 </div>
               )}
@@ -59,67 +59,7 @@ export function CompaniesTable({ companies, users }: DataTableProps) {
         )
       },
     },
-    {
-      header: 'Contact',
-      accessorKey: 'email',
-      cell: ({ row }) => {
-        const company = row.original
-        return (
-          <div className="space-y-1">
-            {company.email && (
-              <div className="flex items-center">
-                <Mail className="mr-1 h-3 w-3" />
-                <a href={`mailto:${company.email}`} className="hover:underline">
-                  {company.email}
-                </a>
-              </div>
-            )}
-            {company.phone && (
-              <div className="flex items-center">
-                <Phone className="mr-1 h-3 w-3" />
-                <a href={`tel:${company.phone}`} className="hover:underline">
-                  {company.phone}
-                </a>
-              </div>
-            )}
-          </div>
-        )
-      },
-    },
-    {
-      header: 'Location',
-      accessorKey: 'city',
-      cell: ({ row }) => {
-        const company = row.original
-        if (!company.city && !company.country) return null
-        
-        return (
-          <div className="flex items-center">
-            <MapPin className="mr-1 h-3 w-3" />
-            <span>
-              {[company.city, company.state, company.country].filter(Boolean).join(', ')}
-            </span>
-          </div>
-        )
-      },
-    },
-    {
-      header: 'Owner',
-      accessorKey: 'ownerId',
-      accessorFn: (company) => company.ownerId,
-      cell: ({ row }) => {
-        const { ownerId } = row.original
-        const owner = users.find((user) => user.id === ownerId)
-        
-        return owner ? (
-          <span>{owner.fullName || owner.email}</span>
-        ) : (
-          <span className="text-muted-foreground">
-            <i>No owner</i>
-          </span>
-        )
-      },
-    },
+    // Owner column removed - now managed through user_companies relationship
     {
       id: 'actions',
       cell: DataTableRowActions,
@@ -143,44 +83,7 @@ export function CompaniesTable({ companies, users }: DataTableProps) {
                 }
                 className="h-8 w-[150px] lg:w-[250px]"
               />
-              {users.length > 0 && (
-                <DataTableFacetedFilter
-                  column={props.table.getColumn('ownerId')}
-                  title="Owner"
-                  options={users.map((user) => ({
-                    value: user.id,
-                    label: user.fullName || user.email || 'Unknown User',
-                  }))}
-                />
-              )}
-              {props.table.getColumn('city') && (
-                <DataTableFacetedFilter
-                  column={props.table.getColumn('city')}
-                  title="Location"
-                  options={
-                    Array.from(
-                      new Set(companies.map(company => company.city).filter(Boolean) as string[])
-                    ).map(city => ({
-                      value: city,
-                      label: city,
-                    }))
-                  }
-                />
-              )}
-              {props.table.getColumn('country') && (
-                <DataTableFacetedFilter
-                  column={props.table.getColumn('country')}
-                  title="Country"
-                  options={
-                    Array.from(
-                      new Set(companies.map(company => company.country).filter(Boolean) as string[])
-                    ).map(country => ({
-                      value: country,
-                      label: country,
-                    }))
-                  }
-                />
-              )}
+              {/* Owner filter removed - now managed through user_companies relationship */}
             </>
           }
         />

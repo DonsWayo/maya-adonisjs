@@ -211,26 +211,7 @@ export function CompanyForm({ company, users, isEditing = false }: Props) {
           )}
         </div>
 
-        <div>
-          <Label htmlFor="ownerId" className="mb-1 text-gray-700">
-            Owner
-          </Label>
-          <Select value={data.ownerId} onValueChange={(value) => setData('ownerId', value)}>
-            <SelectTrigger className={errors?.ownerId ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Select an owner" />
-            </SelectTrigger>
-            <SelectContent>
-              {users.map((user) => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.fullName || user.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors?.ownerId && (
-            <p className="text-[0.8rem] font-medium text-destructive">{errors.ownerId}</p>
-          )}
-        </div>
+        {/* Owner is now managed through user_companies relationship */}
       </div>
 
       <div>

@@ -244,6 +244,8 @@ services:
       - "host.docker.internal:host-gateway"
       - "logto.localhost:host-gateway"
       - "admin.logto.localhost:host-gateway"
+      - "main.localhost:host-gateway"
+      - "monitoring.localhost:host-gateway"
     
         
   # Monitoring application service
@@ -273,6 +275,8 @@ services:
     extra_hosts:
       - "logto.localhost:host-gateway"
       - "admin.logto.localhost:host-gateway"
+      - "main.localhost:host-gateway"
+      - "monitoring.localhost:host-gateway"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.monitoring.rule=Host(`monitoring.localhost`)"

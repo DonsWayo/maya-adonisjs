@@ -132,6 +132,13 @@ export class LogtoDriver extends Oauth2Driver<LogtoDriverAccessToken, LogtoDrive
     // Build userInfoUrl if not defined
     this.userInfoUrl = this.config.userInfoUrl || `${logtoUrl}/oidc/userinfo`
 
+    // Log the configuration for debugging
+    console.log('Logto driver configuration:', {
+      clientId: this.config.clientId,
+      callbackUrl: this.config.callbackUrl,
+      authorizeUrl: this.authorizeUrl,
+    })
+
     /**
      * Extremely important to call the following method to clear the
      * state set by the redirect request.

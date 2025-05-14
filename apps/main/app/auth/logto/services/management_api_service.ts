@@ -101,7 +101,9 @@ export class LogtoManagementApiService {
       
       const token = await this.getAccessToken()
       // Ensure the API URL is correctly formed
-      const url = `${this.baseUrl}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
+      // Check if the endpoint already includes /api to avoid duplication
+      const apiPath = endpoint.startsWith('/api/') ? endpoint : `/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
+      const url = `${this.baseUrl}${apiPath}`
       console.log('Logto API URL:', url)
 
       const options: RequestInit = {
@@ -137,10 +139,21 @@ export class LogtoManagementApiService {
       console.log(`Logto API response for ${endpoint} (truncated):`, 
         responseText.length > 100 ? responseText.substring(0, 100) + '...' : responseText)
       
+      // Special case handling for endpoints that return plain text responses
+      if (endpoint.includes('/organizations/') && endpoint.includes('/users') && responseText === 'Created') {
+        console.log('Received plain text Created response for organization users endpoint')
+        return { status: 'success', message: 'Created' }
+      }
+      
+      // Try to parse as JSON if not a special case
       try {
         return JSON.parse(responseText)
       } catch (e) {
         console.error('Error parsing Logto API response:', e)
+        // If the response is not empty but can't be parsed as JSON, return it as a text response
+        if (responseText && responseText.trim()) {
+          return { status: 'success', message: responseText }
+        }
         throw new LogtoError(`Failed to parse API response: ${endpoint}`, e)
       }
     } catch (error) {
@@ -173,11 +186,20 @@ export class LogtoManagementApiService {
   }
 
   async addUserToOrganization(userId: string, organizationId: string, roleNames?: string[]): Promise<any> {
-    const payload: any = {}
-    if (roleNames && roleNames.length > 0) {
-      payload.roleNames = roleNames
+    // First add the user to the organization
+    const payload = {
+      userIds: [userId]
     }
-    return this.request(`/organizations/${organizationId}/users/${userId}`, 'POST', payload)
+    
+    // The correct endpoint is /organizations/{id}/users with a payload of {userIds: [userId]}
+    const result = await this.request(`/organizations/${organizationId}/users`, 'POST', payload)
+    
+    // If role names are provided, assign them in a separate call
+    if (roleNames && roleNames.length > 0) {
+      await this.assignUserOrganizationRoles(userId, organizationId, roleNames)
+    }
+    
+    return result
   }
 
   async removeUserFromOrganization(userId: string, organizationId: string): Promise<any> {
@@ -202,6 +224,27 @@ export class LogtoManagementApiService {
   }
   
   /**
+   * Get user information by email
+   * This is useful for retrieving a user's Logto ID when we only have their email
+   */
+  async getUserInfo(email: string): Promise<any> {
+    // First, we need to search for users by email
+    const searchResult = await this.request(`/users?search=${encodeURIComponent(email)}`, 'GET')
+    console.log('Logto user search result:', JSON.stringify(searchResult, null, 2))
+    
+    // The response format seems to be an array directly, not wrapped in a 'users' property
+    if (searchResult && Array.isArray(searchResult) && searchResult.length > 0) {
+      // Find the user with the exact email match
+      const user = searchResult.find((u: any) => u.primaryEmail === email)
+      if (user) {
+        return user
+      }
+    }
+    
+    throw new LogtoError(`User with email ${email} not found in Logto`, { email })
+  }
+  
+  /**
    * Create a new organization role at the tenant level
    */
   async createOrganizationRole(name: string, description?: string): Promise<any> {
@@ -220,10 +263,15 @@ export class LogtoManagementApiService {
   
   /**
    * Assign roles to a user in an organization
+   * @param userId The ID of the user to assign roles to
+   * @param organizationId The ID of the organization
+   * @param roleNames Array of role names to assign to the user
+   * @returns Promise resolving to the API response
    */
-  async assignUserOrganizationRoles(organizationId: string, userId: string, roleIds: string[]): Promise<any> {
+  async assignUserOrganizationRoles(userId: string, organizationId: string, roleNames: string[]): Promise<any> {
+    // According to the Logto API spec, the correct payload format uses organizationRoleNames
     return this.request(`/organizations/${organizationId}/users/${userId}/roles`, 'POST', {
-      organizationRoleIds: roleIds
+      organizationRoleNames: roleNames
     })
   }
   

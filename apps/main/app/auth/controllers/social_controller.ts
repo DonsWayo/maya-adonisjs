@@ -49,8 +49,8 @@ export default class SocialController {
     const socialUser = await social.user()
     
     // Log the social user data for debugging
-    console.log('Logto user data:', socialUser)
-    console.log('Logto user original data:', socialUser.original)
+    console.log('Logto user data:', JSON.stringify(socialUser, null, 2))
+    console.log('Logto user original data:', JSON.stringify(socialUser.original, null, 2))
 
     let user = await User.findBy('email', socialUser.email)
 
@@ -72,6 +72,14 @@ export default class SocialController {
       }
       
       user = await User.create(userData)
+    } else {
+      // Update existing user's externalId if it's not set but available from Logto
+      if (!user.externalId && ((socialUser.original && socialUser.original.sub) || socialUser.id)) {
+        const externalId = (socialUser.original && socialUser.original.sub) ? socialUser.original.sub : socialUser.id
+        console.log(`Updating user ${user.id} with externalId ${externalId}`)
+        user.externalId = externalId
+        await user.save()
+      }
     }
 
     await auth.use('web').login(user)

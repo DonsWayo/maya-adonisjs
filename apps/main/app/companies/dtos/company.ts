@@ -15,8 +15,7 @@ export default class CompanyDto extends BaseModelDto {
   declare state: string | null
   declare postalCode: string | null
   declare country: string | null
-  declare ownerId: string | null
-  declare owner: UserDto | null
+  // Owner is now managed through user_companies relationship
   declare logoUrl: string | null
   declare createdAt: string
   declare updatedAt: string | null
@@ -37,8 +36,7 @@ export default class CompanyDto extends BaseModelDto {
     this.state = company.state
     this.postalCode = company.postalCode
     this.country = company.country
-    this.ownerId = company.ownerId
-    this.owner = company.owner ? new UserDto(company.owner) : null
+    // Owner is now managed through user_companies relationship
     this.logoUrl = company.logo && company.logo.url ? company.logo.url : company.logoUrl
     this.createdAt = company.createdAt.toISO() || ''
     this.updatedAt = company.updatedAt ? company.updatedAt.toISO() || null : null

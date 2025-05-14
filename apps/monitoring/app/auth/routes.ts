@@ -13,8 +13,8 @@ const SocialController = () => import('#auth/controllers/social_controller')
 
 router
   .get('/:provider/redirect', [SocialController, 'redirect'])
-  .where('provider', /google|logto/)
+  .where('provider', 'logto')
   .as('social.create')
 
 router.get('/:provider/callback', [SocialController, 'callback'])
-  .where('provider', /google|logto/)
+  .where('provider', 'logto')

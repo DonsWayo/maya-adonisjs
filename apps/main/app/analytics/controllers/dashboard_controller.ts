@@ -6,6 +6,7 @@ export default class DashboardController {
   public async handle({ inertia, auth }: HttpContext) {
     await mail.send(new WelcomeNotification(auth.user!, "message"))
 
+    console.log('user', auth.user)
     return inertia.render('analytics/dashboard')
   }
 }

@@ -9,23 +9,20 @@ export default class CompanyPolicy extends BasePolicy {
     return currentUser.isAdmin
   }
 
-  async view(currentUser: User, company: Company): Promise<AuthorizerResponse> {
+  view(currentUser: User, company: Company): AuthorizerResponse {
     // Admin can view any company
     if (currentUser.isAdmin) {
       return true
     }
     
-    // Owner can view their own company
-    if (company.ownerId === currentUser.id) {
-      return true
+    // For non-admin users, we need to check if they belong to this company
+    // This requires the companies relationship to be preloaded before calling this method
+    if (!currentUser.companies) {
+      console.warn('User companies relationship not preloaded, defaulting to false')
+      return false
     }
     
-    // Check if user belongs to this company using the ORM relationship
-    await currentUser.load('companies', (query) => {
-      query.where('id', company.id)
-    })
-    
-    return currentUser.companies.length > 0
+    return currentUser.companies.some(c => c.id === company.id)
   }
 
   create(_currentUser: User): AuthorizerResponse {
@@ -39,8 +36,17 @@ export default class CompanyPolicy extends BasePolicy {
       return true
     }
     
-    // Owner can update their own company
-    return company.ownerId === currentUser.id
+    // For non-admin users, we need to check if they are an admin of this company
+    // This requires the companies relationship to be preloaded before calling this method
+    if (!currentUser.companies) {
+      console.warn('User companies relationship not preloaded, defaulting to false')
+      return false
+    }
+    
+    // Check if the user has an admin role in this company
+    return currentUser.companies.some(c => {
+      return c.id === company.id && c.$extras.pivot_role === 'admin'
+    })
   }
 
   delete(currentUser: User, _company: Company): AuthorizerResponse {

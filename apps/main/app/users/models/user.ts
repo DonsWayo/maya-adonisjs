@@ -1,4 +1,4 @@
-import { belongsTo, column, computed, manyToMany } from '@adonisjs/lucid/orm'
+import { belongsTo, column, computed, manyToMany, beforeFind, beforeFetch } from '@adonisjs/lucid/orm'
 import type { BelongsTo, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import { DateTime } from 'luxon'
@@ -13,6 +13,16 @@ import Company from '#companies/models/company'
 import Roles from '#users/enums/role'
 
 export default class User extends BaseModel {
+  /**
+   * Auto-load companies relationship
+   */
+  @beforeFind()
+  @beforeFetch()
+  static preloadRelations(query: any) {
+    query.preload('companies', (companiesQuery: any) => {
+      companiesQuery.orderBy('user_companies.is_primary', 'desc')
+    })
+  }
   @column({ isPrimary: true })
   declare id: string
 
@@ -84,6 +94,17 @@ export default class User extends BaseModel {
   @computed()
   get isAdmin() {
     return this.roleId === Roles.ADMIN
+  }
+  
+  /**
+   * Get the primary company for this user
+   */
+  @computed()
+  get primaryCompany() {
+    if (this.$preloaded.companies && Array.isArray(this.$preloaded.companies) && this.$preloaded.companies.length > 0) {
+      return this.$preloaded.companies[0]
+    }
+    return null
   }
 
   static async preComputeUrls(models: User | User[]) {

@@ -35,7 +35,7 @@ export default class extends BaseSchema {
       table.jsonb('profile').nullable() // For OpenID Connect standard claims
       
       // External ID for mapping to Logto
-      table.string('external_id').nullable().unique()
+      table.string('external_id').nullable().unique().index()
       
       // Timestamps
       table.timestamp('created_at').notNullable()

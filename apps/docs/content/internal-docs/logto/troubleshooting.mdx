@@ -1,0 +1,482 @@
+---
+title: Logto Troubleshooting
+description: Common issues and solutions for the Logto integration
+---
+
+# Logto Troubleshooting
+
+This document provides solutions for common issues that may arise with the Logto integration.
+
+## Authentication Issues
+
+### User Cannot Log In
+
+**Symptoms:**
+- User is redirected to Logto but cannot log in
+- User is redirected back to the application but not authenticated
+
+**Possible Causes:**
+1. Incorrect Logto credentials
+2. Misconfigured callback URL
+3. Session issues
+
+**Solutions:**
+
+1. **Verify Logto Credentials:**
+   ```bash
+   # Check environment variables
+   echo $LOGTO_APP_ID
+   echo $LOGTO_APP_SECRET
+   ```
+
+2. **Verify Callback URL:**
+   - Ensure that the callback URL in your environment variables matches the one configured in Logto
+   - Check for any typos or missing characters
+
+   ```typescript
+   // Debug callback URL
+   console.log('Callback URL:', env.get('LOGTO_CALLBACK_URL'))
+   ```
+
+3. **Check Session Configuration:**
+   - Ensure that the session is properly configured
+   - Try clearing cookies and session data
+
+   ```typescript
+   // Clear session
+   await session.clear()
+   ```
+
+4. **Enable Debug Logging:**
+   ```typescript
+   // In LogtoDriver
+   console.log('Auth URL:', authorizationUrl.toString())
+   console.log('Token response:', tokenResponse)
+   ```
+
+### Token Refresh Issues
+
+**Symptoms:**
+- User is logged out unexpectedly
+- API requests fail with authentication errors
+
+**Possible Causes:**
+1. Expired refresh token
+2. Invalid refresh token
+3. Logto server issues
+
+**Solutions:**
+
+1. **Implement Token Refresh:**
+   ```typescript
+   // Check if access token is expired
+   if (tokenExpiry < Date.now()) {
+     // Refresh token
+     const newTokens = await refreshTokens(refreshToken)
+     // Update tokens in session
+     await session.put('logto_access_token', newTokens.access_token)
+     await session.put('logto_refresh_token', newTokens.refresh_token)
+   }
+   ```
+
+2. **Handle Refresh Errors:**
+   ```typescript
+   try {
+     // Refresh token
+     const newTokens = await refreshTokens(refreshToken)
+     // Update tokens
+   } catch (error) {
+     // Log error
+     console.error('Token refresh failed:', error)
+     // Clear session and redirect to login
+     await session.clear()
+     return response.redirect().toRoute('auth.login')
+   }
+   ```
+
+## Organization Management Issues
+
+### Cannot Create Organization
+
+**Symptoms:**
+- Organization creation fails
+- Error messages in the console
+
+**Possible Causes:**
+1. Insufficient permissions
+2. API errors
+3. Network issues
+
+**Solutions:**
+
+1. **Check API Permissions:**
+   - Ensure that the Logto application has the necessary permissions to create organizations
+   - Check the scopes in the client credentials request
+
+2. **Verify API Request:**
+   ```typescript
+   // Log API request
+   console.log('Creating organization:', {
+     name: companyData.name,
+     description: companyData.description
+   })
+   ```
+
+3. **Handle API Errors:**
+   ```typescript
+   try {
+     // Create organization
+     const logtoOrganization = await managementApiService.createOrganization(
+       companyData.name,
+       companyData.description || undefined
+     )
+   } catch (error) {
+     console.error('Failed to create organization:', error)
+     // Return appropriate error response
+     return response.status(500).json({
+       error: 'Failed to create organization',
+       details: error.message
+     })
+   }
+   ```
+
+### Cannot Add User to Organization
+
+**Symptoms:**
+- User addition to organization fails
+- Error messages in the console
+
+**Possible Causes:**
+1. User does not exist in Logto
+2. Organization does not exist in Logto
+3. API errors
+
+**Solutions:**
+
+1. **Check User and Organization:**
+   ```typescript
+   // Verify user exists
+   const logtoUser = await managementApiService.getUserInfo(email)
+   if (!logtoUser) {
+     console.error('User does not exist in Logto:', email)
+     // Handle error
+   }
+
+   // Verify organization exists
+   const logtoOrganization = await managementApiService.getOrganization(organizationId)
+   if (!logtoOrganization) {
+     console.error('Organization does not exist in Logto:', organizationId)
+     // Handle error
+   }
+   ```
+
+2. **Debug API Request:**
+   ```typescript
+   // Log API request
+   console.log('Adding user to organization:', {
+     userId: user.externalId,
+     organizationId: logtoOrganization.id
+   })
+   ```
+
+3. **Fix Payload Format:**
+   ```typescript
+   // Correct payload format
+   const payload = {
+     userIds: [userId]
+   }
+   ```
+
+### Role Assignment Issues
+
+**Symptoms:**
+- Role assignment fails
+- User does not have the expected permissions
+
+**Possible Causes:**
+1. Role does not exist
+2. Incorrect role name
+3. API errors
+
+**Solutions:**
+
+1. **Ensure Roles Exist:**
+   ```typescript
+   // Ensure organization roles exist
+   await managementApiService.ensureOrganizationRoles([
+     { name: 'admin', description: 'Administrator of the organization' },
+     { name: 'member', description: 'Member of the organization' }
+   ])
+   ```
+
+2. **Use Role Names, Not IDs:**
+   ```typescript
+   // Correct: Use role names
+   await managementApiService.assignUserOrganizationRoles(
+     user.externalId,
+     logtoOrganization.id,
+     ['admin'] // Use role names, not IDs
+   )
+
+   // Incorrect: Don't use role IDs
+   await managementApiService.assignUserOrganizationRoles(
+     user.externalId,
+     logtoOrganization.id,
+     ['b8dfq09due2ccr3uljfww'] // Don't use role IDs
+   )
+   ```
+
+3. **Debug Role Assignment:**
+   ```typescript
+   // Log role assignment
+   console.log('Assigning roles:', {
+     userId: user.externalId,
+     organizationId: logtoOrganization.id,
+     roleNames: ['admin']
+   })
+   ```
+
+## API Integration Issues
+
+### API Request Failures
+
+**Symptoms:**
+- API requests to Logto fail
+- Error messages in the console
+
+**Possible Causes:**
+1. Authentication issues
+2. Network issues
+3. API endpoint changes
+
+**Solutions:**
+
+1. **Check Authentication:**
+   ```typescript
+   // Log authentication status
+   console.log('Access token:', accessToken ? 'Present' : 'Missing')
+   console.log('Token expiry:', new Date(tokenExpiry).toISOString())
+   ```
+
+2. **Verify API Endpoints:**
+   ```typescript
+   // Log API URL
+   console.log('API URL:', `${this.baseUrl}${endpoint}`)
+   ```
+
+3. **Handle Network Errors:**
+   ```typescript
+   try {
+     // Make API request
+     const response = await fetch(url, {
+       method,
+       headers: {
+         'Authorization': `Bearer ${accessToken}`,
+         'Content-Type': 'application/json'
+       },
+       body: data ? JSON.stringify(data) : undefined
+     })
+   } catch (networkError) {
+     console.error('Network error:', networkError)
+     throw new LogtoError('Network error when connecting to Logto API', networkError)
+   }
+   ```
+
+### Response Parsing Issues
+
+**Symptoms:**
+- API requests succeed but response parsing fails
+- Error messages about JSON parsing
+
+**Possible Causes:**
+1. Non-JSON responses
+2. Unexpected response format
+
+**Solutions:**
+
+1. **Handle Non-JSON Responses:**
+   ```typescript
+   // Handle both JSON and plain text responses
+   const responseText = await response.text()
+   
+   // Special case for plain text responses
+   if (endpoint.includes('/organizations/') && endpoint.includes('/users') && responseText === 'Created') {
+     console.log('Received plain text Created response for organization users endpoint')
+     return { status: 'success', message: 'Created' }
+   }
+   
+   // Parse JSON response
+   try {
+     return JSON.parse(responseText)
+   } catch (e) {
+     // Handle non-JSON responses
+     if (responseText && responseText.trim()) {
+       console.log(`Received plain text response for ${endpoint}:`, responseText)
+       return { status: 'success', message: responseText }
+     }
+     throw new LogtoError(`Failed to parse API response: ${endpoint}`, e)
+   }
+   ```
+
+2. **Log Response Details:**
+   ```typescript
+   console.log('Response status:', response.status, response.statusText)
+   console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+   console.log('Response body:', responseText.substring(0, 200))
+   ```
+
+## Deployment Issues
+
+### Docker Environment Issues
+
+**Symptoms:**
+- Logto integration works locally but not in Docker
+- Network connectivity issues between services
+
+**Possible Causes:**
+1. Incorrect environment variables
+2. Network configuration issues
+3. Container communication problems
+
+**Solutions:**
+
+1. **Check Environment Variables:**
+   ```bash
+   # Check environment variables in container
+   docker-compose exec main env | grep LOGTO
+   ```
+
+2. **Verify Network Configuration:**
+   ```bash
+   # Test connectivity from main container to Logto
+   docker-compose exec main curl -v http://logto:3001/oidc/.well-known/openid-configuration
+   ```
+
+3. **Update Docker Compose Configuration:**
+   ```yaml
+   # Ensure services are on the same network
+   services:
+     main:
+       # ...
+       networks:
+         - app-network
+     logto:
+       # ...
+       networks:
+         - app-network
+   
+   networks:
+     app-network:
+       driver: bridge
+   ```
+
+### Production Deployment Issues
+
+**Symptoms:**
+- Integration works in development but not in production
+- SSL/TLS issues
+
+**Possible Causes:**
+1. HTTPS configuration
+2. CORS issues
+3. Environment differences
+
+**Solutions:**
+
+1. **Configure HTTPS:**
+   - Ensure that all Logto endpoints use HTTPS in production
+   - Update environment variables accordingly
+
+   ```
+   LOGTO_ENDPOINT=https://auth.yourdomain.com
+   LOGTO_CALLBACK_URL=https://app.yourdomain.com/logto/callback
+   ```
+
+2. **Configure CORS:**
+   - Configure CORS in Logto to allow requests from your application domain
+
+3. **Environment-Specific Configuration:**
+   - Use environment-specific configuration files
+   - Set appropriate environment variables for each environment
+
+## Logging and Debugging
+
+### Enabling Debug Logging
+
+To enable detailed logging for the Logto integration:
+
+```typescript
+// In LogtoManagementApiService
+private async request(endpoint: string, method: string, data?: any): Promise<any> {
+  console.log(`Logto API request: ${method} ${endpoint}`)
+  if (data) {
+    console.log('Logto API request body:', JSON.stringify(data))
+  }
+  
+  // ... make request ...
+  
+  console.log(`Logto API response status: ${response.status} ${response.statusText}`)
+  console.log(`Logto API response for ${endpoint} (truncated):`, responseText.substring(0, 100))
+}
+```
+
+### Debugging Tools
+
+1. **API Testing Tools:**
+   - Use tools like Postman or Insomnia to test the Logto API directly
+   - Compare the responses with your application's requests
+
+2. **Network Monitoring:**
+   - Use browser developer tools to monitor network requests
+   - Check for any failed requests or unexpected responses
+
+3. **Log Analysis:**
+   - Analyze application logs for Logto-related errors
+   - Look for patterns in error messages
+
+## Common Error Messages
+
+### "Failed to get access token"
+
+**Cause:** The application cannot authenticate with the Logto API.
+
+**Solution:**
+- Verify that `LOGTO_APP_ID` and `LOGTO_APP_SECRET` are correct
+- Check that the Logto server is running and accessible
+- Ensure that the application has the necessary permissions
+
+### "Failed to parse API response"
+
+**Cause:** The response from the Logto API is not in the expected format.
+
+**Solution:**
+- Check the response format for the specific endpoint
+- Update the response parsing logic to handle the actual response format
+- Add special case handling for non-JSON responses
+
+### "User not found"
+
+**Cause:** The user does not exist in Logto.
+
+**Solution:**
+- Verify that the user exists in Logto
+- Check that the user ID or email is correct
+- Create the user in Logto if necessary
+
+### "Organization not found"
+
+**Cause:** The organization does not exist in Logto.
+
+**Solution:**
+- Verify that the organization exists in Logto
+- Check that the organization ID is correct
+- Create the organization in Logto if necessary
+
+## Next Steps
+
+For more information about other aspects of our Logto integration, please refer to:
+
+- [Architecture](./architecture) - Overview of the integration components and structure
+- [Authentication](./authentication) - Details on the authentication flow
+- [Organization Management](./organization-management) - Details on organization management
+- [API Integration](./api-integration) - Details on the Logto Management API integration

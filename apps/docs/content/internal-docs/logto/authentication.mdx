@@ -1,0 +1,336 @@
+---
+title: Logto Authentication
+description: Detailed documentation of the authentication flow with Logto
+---
+
+# Logto Authentication
+
+This document details the authentication flow between our application and Logto, including login, logout, and callback processing.
+
+## Authentication Flow Overview
+
+The authentication flow with Logto follows the standard OAuth 2.0 / OpenID Connect flow:
+
+1. User is redirected to Logto for authentication
+2. User authenticates with Logto (login or signup)
+3. Logto redirects back to our application with an authorization code
+4. Our application exchanges the code for tokens
+5. User is authenticated and session is created
+
+```
+┌─────────────┐                                  ┌─────────┐                                ┌───────┐
+│             │                                  │         │                                │       │
+│ Application │                                  │  Logto  │                                │ User  │
+│             │                                  │         │                                │       │
+└──────┬──────┘                                  └────┬────┘                                └───┬───┘
+       │                                              │                                        │
+       │                                              │      1. User attempts to access        │
+       │                                              │         protected resource            │
+       │                                              │ ◄─────────────────────────────────────┘
+       │                                              │                                        
+       │      2. Redirect to Logto login              │                                        
+       │ ─────────────────────────────────────────────►                                        
+       │                                              │                                        
+       │                                              │      3. User authenticates             │
+       │                                              │ ◄─────────────────────────────────────┘
+       │                                              │                                        
+       │      4. Redirect to callback URL             │                                        
+       │      with authorization code                 │                                        
+       │ ◄─────────────────────────────────────────────                                        
+       │                                              │                                        
+       │      5. Exchange code for tokens             │                                        
+       │ ─────────────────────────────────────────────►                                        
+       │                                              │                                        
+       │      6. Return tokens                        │                                        
+       │ ◄─────────────────────────────────────────────                                        
+       │                                              │                                        
+       │      7. Create session                       │                                        
+       │      and redirect to original URL            │                                        
+       │ ─────────────────────────────────────────────────────────────────────────────────────►
+```
+
+## Implementation Details
+
+### Login Process
+
+To initiate the login process, we redirect the user to Logto:
+
+```typescript
+// Example login route
+Route.get('/login', async ({ auth, response }) => {
+  return auth.use('logto').redirect()
+})
+```
+
+The `redirect` method in the LogtoDriver constructs the authorization URL with the necessary parameters:
+
+```typescript
+public async redirect() {
+  const { request, response } = this.ctx
+  
+  // Generate and store CSRF token
+  const csrfToken = generateRandomString(32)
+  await this.ctx.session.put('logto_csrf_token', csrfToken)
+  
+  // Generate authorization URL
+  const authorizationUrl = new URL(this.config.authorizeUrl)
+  authorizationUrl.searchParams.append('client_id', this.config.clientId)
+  authorizationUrl.searchParams.append('redirect_uri', this.config.callbackUrl)
+  authorizationUrl.searchParams.append('response_type', 'code')
+  authorizationUrl.searchParams.append('scope', 'openid profile email')
+  authorizationUrl.searchParams.append('state', csrfToken)
+  
+  // Store original URL for redirection after login
+  const intendedUrl = request.input('redirect_to', '/')
+  await this.ctx.session.put('logto_intended_url', intendedUrl)
+  
+  // Redirect to Logto
+  return response.redirect(authorizationUrl.toString())
+}
+```
+
+### Callback Processing
+
+After the user authenticates with Logto, they are redirected back to our callback URL with an authorization code. We process this callback to exchange the code for tokens:
+
+```typescript
+// Example callback route
+Route.get('/logto/callback', async ({ auth, response, session }) => {
+  await auth.use('logto').callback()
+  
+  // Redirect to the originally intended URL
+  const intendedUrl = session.get('logto_intended_url', '/')
+  return response.redirect().toPath(intendedUrl)
+})
+```
+
+The `callback` method in the LogtoDriver handles the code exchange and token validation:
+
+```typescript
+public async callback() {
+  const { request, session } = this.ctx
+  
+  // Verify CSRF token
+  const state = request.input('state')
+  const storedCsrfToken = await session.get('logto_csrf_token')
+  
+  if (!state || state !== storedCsrfToken) {
+    throw new LogtoError('CSRF token mismatch')
+  }
+  
+  // Get authorization code
+  const code = request.input('code')
+  
+  if (!code) {
+    throw new LogtoError('No authorization code provided')
+  }
+  
+  // Exchange code for tokens
+  const tokenResponse = await this.exchangeCodeForTokens(code)
+  
+  // Validate tokens
+  await this.validateTokens(tokenResponse)
+  
+  // Get user information
+  const userInfo = await this.getUserInfo(tokenResponse.access_token)
+  
+  // Store tokens in session
+  await session.put('logto_access_token', tokenResponse.access_token)
+  await session.put('logto_id_token', tokenResponse.id_token)
+  await session.put('logto_refresh_token', tokenResponse.refresh_token)
+  await session.put('logto_user_info', userInfo)
+  
+  // Find or create user in our database
+  const user = await this.findOrCreateUser(userInfo)
+  
+  return user
+}
+```
+
+### Token Exchange
+
+The code is exchanged for tokens using the token endpoint:
+
+```typescript
+private async exchangeCodeForTokens(code: string) {
+  const response = await fetch(this.config.accessTokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: this.config.clientId,
+      client_secret: this.config.clientSecret,
+      redirect_uri: this.config.callbackUrl,
+      code,
+    }),
+  })
+  
+  if (!response.ok) {
+    throw new LogtoError('Failed to exchange code for tokens')
+  }
+  
+  return await response.json()
+}
+```
+
+### User Information Retrieval
+
+After obtaining the access token, we retrieve the user's information:
+
+```typescript
+private async getUserInfo(accessToken: string) {
+  const response = await fetch(this.config.userInfoUrl, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  })
+  
+  if (!response.ok) {
+    throw new LogtoError('Failed to retrieve user information')
+  }
+  
+  return await response.json()
+}
+```
+
+### User Creation/Synchronization
+
+When a user authenticates with Logto, we find or create a corresponding user in our database:
+
+```typescript
+private async findOrCreateUser(userInfo: any) {
+  // Find user by external ID
+  let user = await User.findBy('external_id', userInfo.sub)
+  
+  if (!user) {
+    // Create new user
+    user = new User()
+    user.externalId = userInfo.sub
+    user.email = userInfo.email
+    user.name = userInfo.name
+    await user.save()
+  } else {
+    // Update user information
+    user.email = userInfo.email
+    user.name = userInfo.name
+    await user.save()
+  }
+  
+  return user
+}
+```
+
+### Logout Process
+
+To log a user out, we invalidate the session and redirect to Logto's logout endpoint:
+
+```typescript
+// Example logout route
+Route.get('/logout', async ({ auth, response, session }) => {
+  // Get ID token for Logto logout
+  const idToken = session.get('logto_id_token')
+  
+  // Clear session
+  await session.forget('logto_access_token')
+  await session.forget('logto_id_token')
+  await session.forget('logto_refresh_token')
+  await session.forget('logto_user_info')
+  
+  // Logout from Logto
+  await auth.use('logto').logout()
+  
+  // Construct Logto logout URL
+  const logoutUrl = new URL(`${env.get('LOGTO_ENDPOINT')}/oidc/logout`)
+  logoutUrl.searchParams.append('id_token_hint', idToken)
+  logoutUrl.searchParams.append('post_logout_redirect_uri', env.get('APP_URL'))
+  
+  return response.redirect(logoutUrl.toString())
+})
+```
+
+## Authentication Middleware
+
+To protect routes that require authentication, we use the LogtoMiddleware:
+
+```typescript
+// Register middleware in start/kernel.ts
+Server.middleware.registerNamed({
+  auth: () => import('App/Auth/Middleware/AuthMiddleware'),
+})
+
+// Use middleware in routes
+Route.get('/dashboard', 'DashboardController.index').middleware('auth')
+```
+
+The middleware checks if the user is authenticated:
+
+```typescript
+export default class AuthMiddleware {
+  public async handle({ auth, response }: HttpContextContract, next: () => Promise<void>) {
+    // Check if user is authenticated
+    if (!(await auth.use('logto').check())) {
+      // Redirect to login
+      return response.redirect().toRoute('auth.login')
+    }
+    
+    // Continue to route handler
+    await next()
+  }
+}
+```
+
+## Token Refresh
+
+When the access token expires, we refresh it using the refresh token:
+
+```typescript
+private async refreshTokens(refreshToken: string) {
+  const response = await fetch(this.config.accessTokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: this.config.clientId,
+      client_secret: this.config.clientSecret,
+      refresh_token: refreshToken,
+    }),
+  })
+  
+  if (!response.ok) {
+    throw new LogtoError('Failed to refresh tokens')
+  }
+  
+  return await response.json()
+}
+```
+
+## Session Management
+
+We store the authentication tokens in the user's session:
+
+```typescript
+// Store tokens in session
+await session.put('logto_access_token', tokenResponse.access_token)
+await session.put('logto_id_token', tokenResponse.id_token)
+await session.put('logto_refresh_token', tokenResponse.refresh_token)
+await session.put('logto_user_info', userInfo)
+```
+
+## Security Considerations
+
+1. **CSRF Protection**: We use a CSRF token to prevent cross-site request forgery attacks
+2. **Token Storage**: Tokens are stored in the server-side session, not in cookies or localStorage
+3. **HTTPS**: All communication with Logto is over HTTPS
+4. **Token Validation**: We validate the tokens before using them
+
+## Next Steps
+
+For more information about other aspects of our Logto integration, please refer to:
+
+- [User Management](./user-management) - Details on user creation and synchronization
+- [Organization Management](./organization-management) - Details on organization management
+- [API Integration](./api-integration) - Details on the Logto Management API integration

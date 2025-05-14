@@ -44,3 +44,23 @@ router.post('/api/tokens', [TokensController, 'store'])
   // Apply permission check for token creation
   .middleware(middleware.logtoPermission())
 
+/**
+ * API routes for M2M communication
+ * These routes are protected by the Logto JWT middleware
+ * and require specific permissions
+ */
+router
+  .group(() => {
+    // User endpoints
+    router.get('/users', [UsersController, 'indexApi'])
+    // Define the more specific route first
+    router.get('/users/external/:externalId', [UsersController, 'showByExternalId'])
+    // Then the generic routes
+    router.get('/users/:id', [UsersController, 'show'])
+    router.get('/users/:id/companies', [UsersController, 'companies'])
+  })
+  .prefix('/api/v1')
+  .middleware([middleware.logtoJwt()])
+  // For API routes, we need to check for specific permissions
+  .middleware([middleware.logtoPermission()])
+

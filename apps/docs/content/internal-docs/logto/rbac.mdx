@@ -1,0 +1,317 @@
+---
+title: Logto Role-Based Access Control
+description: Detailed documentation of role-based access control with Logto
+---
+
+# Role-Based Access Control with Logto
+
+This document details how we implement role-based access control (RBAC) using Logto's organization roles feature.
+
+## Overview
+
+Role-based access control allows us to:
+
+1. Define different roles within organizations
+2. Assign these roles to users
+3. Control access to resources based on a user's role
+
+In our application, we use Logto's organization roles to implement RBAC for company resources.
+
+## Role Definitions
+
+We define the following organization roles in Logto:
+
+1. **admin**: Organization administrators with full control
+   - Can manage company settings
+   - Can invite and remove users
+   - Can assign roles to users
+   - Has access to all company resources
+
+2. **member**: Regular organization members with limited permissions
+   - Can access company resources
+   - Cannot manage company settings
+   - Cannot invite or remove users
+   - Cannot assign roles to users
+
+## Role Creation
+
+We ensure that the necessary organization roles exist in Logto using the `ensureOrganizationRoles` method:
+
+```typescript
+// Ensure organization roles exist
+await managementApiService.ensureOrganizationRoles([
+  { name: 'admin', description: 'Administrator of the organization' },
+  { name: 'member', description: 'Member of the organization' }
+])
+```
+
+This method checks if the roles already exist and creates them if they don't:
+
+```typescript
+async ensureOrganizationRoles(roles: Array<{ name: string, description?: string }>): Promise<any> {
+  try {
+    // Get existing organization roles
+    const existingRoles = await this.getOrganizationRoles()
+    const existingRoleNames = existingRoles.map((role: any) => role.name)
+    
+    // Create missing roles
+    const rolesToCreate = roles.filter(role => !existingRoleNames.includes(role.name))
+    const createdRoles = []
+    
+    for (const role of rolesToCreate) {
+      try {
+        const createdRole = await this.createOrganizationRole(role.name, role.description)
+        createdRoles.push(createdRole)
+      } catch (error) {
+        console.error(`Failed to create organization role ${role.name}:`, error)
+      }
+    }
+    
+    return {
+      existingRoles,
+      createdRoles
+    }
+  } catch (error) {
+    console.error('Failed to ensure organization roles:', error)
+    throw error
+  }
+}
+```
+
+## Role Assignment
+
+When a user is added to a company, we assign them a role within the organization:
+
+```typescript
+// Assign the admin role to the user
+await managementApiService.assignUserOrganizationRoles(
+  user.externalId,
+  logtoOrganization.id,
+  ['admin'] // Use the role name instead of the ID
+)
+```
+
+This sends a request to the Logto API to assign the specified role to the user:
+
+```typescript
+async assignUserOrganizationRoles(userId: string, organizationId: string, roleNames: string[]): Promise<any> {
+  return this.request(`/organizations/${organizationId}/users/${userId}/roles`, 'POST', {
+    organizationRoleNames: roleNames
+  })
+}
+```
+
+**Important**: Always use role names (e.g., 'admin') rather than role IDs when assigning roles to users.
+
+## Authorization Checks
+
+We use the AdonisJS Bouncer to implement authorization checks based on a user's role:
+
+```typescript
+// Example CompanyPolicy
+export default class CompanyPolicy {
+  public async viewList({ user }: HttpContextContract) {
+    return user !== undefined
+  }
+
+  public async view({ user }: HttpContextContract, company: Company) {
+    // Check if user is a member of the company
+    const userCompany = await UserCompany.query()
+      .where('user_id', user.id)
+      .where('company_id', company.id)
+      .first()
+
+    return userCompany !== null
+  }
+
+  public async create({ user }: HttpContextContract) {
+    return user !== undefined
+  }
+
+  public async update({ user }: HttpContextContract, company: Company) {
+    // Check if user is an admin of the company
+    const userCompany = await UserCompany.query()
+      .where('user_id', user.id)
+      .where('company_id', company.id)
+      .where('role', 'admin')
+      .first()
+
+    return userCompany !== null
+  }
+
+  public async delete({ user }: HttpContextContract, company: Company) {
+    // Check if user is an admin of the company
+    const userCompany = await UserCompany.query()
+      .where('user_id', user.id)
+      .where('company_id', company.id)
+      .where('role', 'admin')
+      .first()
+
+    return userCompany !== null
+  }
+}
+```
+
+We also check the user's role in Logto for more critical operations:
+
+```typescript
+// Example of checking user's role in Logto
+async hasAdminRole(userId: string, organizationId: string): Promise<boolean> {
+  try {
+    const roles = await this.getUserOrganizationRoles(organizationId, userId)
+    return roles.some((role: any) => role.name === 'admin')
+  } catch (error) {
+    console.error('Error checking admin role:', error)
+    return false
+  }
+}
+```
+
+## Role-Based UI
+
+We adapt the user interface based on the user's role:
+
+```tsx
+// Example React component with role-based UI
+const CompanySettings = ({ company, user }) => {
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    // Check if user is an admin of the company
+    const checkAdminRole = async () => {
+      const response = await fetch(`/api/companies/${company.id}/check-admin-role`)
+      const data = await response.json()
+      setIsAdmin(data.isAdmin)
+    }
+
+    checkAdminRole()
+  }, [company.id])
+
+  return (
+    <div>
+      <h1>{company.name} Settings</h1>
+      
+      {isAdmin ? (
+        <>
+          <h2>Admin Settings</h2>
+          <UserManagement company={company} />
+          <CompanySettingsForm company={company} />
+        </>
+      ) : (
+        <p>You do not have permission to access company settings.</p>
+      )}
+      
+      <h2>Company Resources</h2>
+      <ResourceList company={company} />
+    </div>
+  )
+}
+```
+
+## Role Synchronization
+
+We maintain role synchronization between our database and Logto:
+
+1. When a user's role is updated in our database, we update it in Logto
+2. When checking permissions, we verify the role in both our database and Logto
+
+```typescript
+// Example of updating a user's role
+async updateUserRole(userId: string, companyId: string, role: string): Promise<void> {
+  // Get company and user
+  const company = await Company.findOrFail(companyId)
+  const user = await User.findOrFail(userId)
+  
+  // Update role in our database
+  const userCompany = await UserCompany.query()
+    .where('user_id', userId)
+    .where('company_id', companyId)
+    .firstOrFail()
+  
+  userCompany.role = role
+  await userCompany.save()
+  
+  // Update role in Logto
+  const managementApiService = new LogtoManagementApiService()
+  await managementApiService.assignUserOrganizationRoles(
+    user.externalId,
+    company.externalId,
+    [role]
+  )
+}
+```
+
+## Checking User Roles
+
+We provide methods to check a user's roles in an organization:
+
+```typescript
+// Get user roles in an organization
+async getUserOrganizationRoles(organizationId: string, userId: string): Promise<any> {
+  return this.request(`/organizations/${organizationId}/users/${userId}/roles`, 'GET')
+}
+
+// Check if user has a specific role
+async hasRole(userId: string, organizationId: string, roleName: string): Promise<boolean> {
+  try {
+    const roles = await this.getUserOrganizationRoles(organizationId, userId)
+    return roles.some((role: any) => role.name === roleName)
+  } catch (error) {
+    console.error(`Error checking if user has role ${roleName}:`, error)
+    return false
+  }
+}
+```
+
+## Role-Based Middleware
+
+We implement middleware to protect routes based on user roles:
+
+```typescript
+// Example role-based middleware
+export default class RoleMiddleware {
+  constructor(private role: string) {}
+
+  public async handle({ auth, response, params }: HttpContextContract, next: () => Promise<void>) {
+    const user = await auth.use('logto').user()
+    const companyId = params.companyId
+
+    // Get user-company relationship
+    const userCompany = await UserCompany.query()
+      .where('user_id', user.id)
+      .where('company_id', companyId)
+      .first()
+
+    if (!userCompany || userCompany.role !== this.role) {
+      return response.forbidden({ error: 'You do not have the required role to access this resource' })
+    }
+
+    await next()
+  }
+}
+
+// Register middleware in start/kernel.ts
+Server.middleware.registerNamed({
+  role: (role) => new RoleMiddleware(role),
+})
+
+// Use middleware in routes
+Route.get('/companies/:companyId/admin-settings', 'CompaniesController.adminSettings')
+  .middleware(['auth', 'role:admin'])
+```
+
+## Best Practices
+
+1. **Use Role Names**: Always use role names (e.g., 'admin') rather than role IDs when assigning roles to users
+2. **Check Both Systems**: Verify roles in both our database and Logto for critical operations
+3. **Error Handling**: Handle errors gracefully when checking roles
+4. **Role Synchronization**: Keep roles synchronized between our database and Logto
+5. **Default Roles**: Assign default roles when adding users to organizations
+
+## Next Steps
+
+For more information about other aspects of our Logto integration, please refer to:
+
+- [Organization Management](./organization-management) - Details on organization management
+- [API Integration](./api-integration) - Details on the Logto Management API integration
+- [Troubleshooting](./troubleshooting) - Common issues and solutions

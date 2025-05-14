@@ -1,6 +1,3 @@
-import UserDto from '#users/dtos/user'
-import User from '#users/models/user'
-import AbilitiesService from '#users/services/abilities_service'
 import { defineConfig } from '@adonisjs/inertia'
 import type { InferSharedProps } from '@adonisjs/inertia/types'
 
@@ -17,11 +14,7 @@ const inertiaConfig = defineConfig({
    */
   sharedData: {
     user: async (ctx) => {
-      if (ctx.auth?.user) {
-        await User.preComputeUrls(ctx.auth?.user)
-
-        return new UserDto(ctx.auth?.user)
-      }
+      return ctx.auth?.user;
     },
     flashMessages: (ctx) => ctx.session?.flashMessages.all(),
     abilities: (ctx) => {
@@ -29,7 +22,8 @@ const inertiaConfig = defineConfig({
         return []
       }
 
-      return new AbilitiesService().getAllAbilities(ctx.auth?.user)
+      //return new AbilitiesService().getAllAbilities(ctx.auth?.user)
+      return []
     },
   },
 

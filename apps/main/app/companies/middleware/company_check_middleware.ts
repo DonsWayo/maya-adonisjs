@@ -20,8 +20,11 @@ export default class CompanyCheckMiddleware {
       return next()
     }
     
-    // Check if user has a company
-    if (!user.companyId) {
+    // Load user's companies
+    await user.load('companies')
+    
+    // Check if user has any companies
+    if (!user.companies || user.companies.length === 0) {
       // Get current path
       const currentPath = ctx.request.url(true)
       

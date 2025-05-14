@@ -22,6 +22,7 @@
     "#auth/*": "./app/auth/*.js",
     "#providers/*": "./providers/*.js",
     "#users/*": "./app/users/*.js",
+    "#services/*": "./app/services/*.js",
     "#tests/*": "./tests/*.js"
   },
   "devDependencies": {
