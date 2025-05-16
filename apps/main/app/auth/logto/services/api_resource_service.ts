@@ -1,6 +1,7 @@
 import env from '#start/env'
 import { managementApiService } from '#auth/logto/index'
 
+
 /**
  * Service to manage API resources in Logto
  */
@@ -14,7 +15,7 @@ export class ApiResourceService {
   constructor() {
     // The API identifier should be unique and follow a URL format
     // Using the app's domain as the base is a good practice
-    this.apiIdentifier = env.get('API_RESOURCE_IDENTIFIER', 'https://maya.api/main')
+    this.apiIdentifier = env.get('API_RESOURCE_IDENTIFIER', 'http://main.localhost')
   }
 
   /**

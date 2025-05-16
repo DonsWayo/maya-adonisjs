@@ -37,7 +37,7 @@ export class MainAppService {
     this.tokenEndpoint = `${env.get('LOGTO_URL')}/oidc/token`
     this.clientId = env.get('LOGTO_M2M_CLIENT_ID')
     this.clientSecret = env.get('LOGTO_M2M_CLIENT_SECRET')
-    this.apiIdentifier = env.get('API_RESOURCE_IDENTIFIER', 'https://maya.api/main')
+    this.apiIdentifier = env.get('API_RESOURCE_IDENTIFIER', 'http://main.localhost')
   }
   
   /**

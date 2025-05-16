@@ -50,7 +50,8 @@ export default defineConfig({
     () => import('@adonisjs/ally/ally_provider'),
     () => import('@jrmc/adonis-attachment/attachment_provider'),
     () => import('@adonisjs/drive/drive_provider'),
-    () => import('@adonisjs/redis/redis_provider')
+    () => import('@adonisjs/redis/redis_provider'),
+    () => import('#auth/logto/providers/api_resource_provider'),
   ],
 
   /*
@@ -84,6 +85,9 @@ export default defineConfig({
     () => import('#companies/start/view'),
     () => import('#companies/start/events'),
     () => import('#companies/routes'),
+
+    //logto
+    () => import('#auth/logto/routes'),
 
     //webhooks
     () => import('#webhooks/routes'),
