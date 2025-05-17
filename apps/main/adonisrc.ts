@@ -89,8 +89,6 @@ export default defineConfig({
     //logto
     () => import('#auth/logto/routes'),
 
-    //webhooks
-    () => import('#webhooks/routes'),
   ],
 
   /*

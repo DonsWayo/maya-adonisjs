@@ -299,7 +299,7 @@ export class ApiResourceService {
         
         // Find scopes that are not already assigned to the role
         const existingScopeIds = roleScopes.map((scope: any) => scope.id)
-        const missingScopeIds = scopeIds.filter(id => !existingScopeIds.includes(id))
+        const missingScopeIds = scopeIds.filter((id: string) => !existingScopeIds.includes(id))
         
         if (missingScopeIds.length > 0) {
           console.log(`Adding ${missingScopeIds.length} missing scopes to role ${existingRole.id}`)

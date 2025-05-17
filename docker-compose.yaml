@@ -132,6 +132,8 @@ services:
     extra_hosts:
       - "logto.localhost:host-gateway"
       - "admin.logto.localhost:host-gateway"
+      - "main.localhost:host-gateway"
+      - "monitoring.localhost:host-gateway"
     networks:
       - maya_network
     labels:
