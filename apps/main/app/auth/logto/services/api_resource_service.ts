@@ -1,7 +1,6 @@
 import env from '#start/env'
 import { managementApiService } from '#auth/logto/index'
 
-
 /**
  * Service to manage API resources in Logto
  */
@@ -62,6 +61,9 @@ export class ApiResourceService {
           console.log('Scopes already exist, no need to register')
         }
         
+        // Check if the M2M role exists
+        await this.ensureM2MRoleExists(existingResource.id)
+        
         return existingResource
       }
       
@@ -78,6 +80,9 @@ export class ApiResourceService {
       
       // Register API scopes
       await this.registerApiScopes(newResource.id)
+      
+      // Create M2M role with all scopes
+      await this.ensureM2MRoleExists(newResource.id)
       
       console.log('API resource created in Logto:', newResource.id)
       return newResource
@@ -119,29 +124,23 @@ export class ApiResourceService {
       
       console.log('Found API resource:', apiResource.id)
       
-      // Get the scopes for the API resource
+      // Check if the resource has the required scopes
       const scopes = await this.getApiResourceScopes(apiResource.id)
-      
-      console.log(`API resource has ${scopes.length} scopes:`)
-      scopes.forEach((scope: any, index: number) => {
-        console.log(`Scope ${index + 1}:`, {
-          id: scope.id,
-          name: scope.name,
-          description: scope.description
-        })
-      })
+      console.log(`Resource has ${scopes.length} scopes`)
       
       // Check if all required scopes are present
       const requiredScopes = ['read:users', 'read:companies', 'write:users', 'write:companies']
-      const missingScopes = requiredScopes.filter(requiredScope => 
-        !scopes.some((scope: any) => scope.name === requiredScope)
-      )
+      const scopeNames = scopes.map((scope: any) => scope.name)
       
+      console.log('Required scopes:', requiredScopes)
+      console.log('Available scopes:', scopeNames)
+      
+      const missingScopes = requiredScopes.filter(scope => !scopeNames.includes(scope))
       if (missingScopes.length > 0) {
-        console.log('Missing scopes:', missingScopes)
+        console.error('Missing scopes:', missingScopes)
         return { 
           success: false, 
-          message: `Missing scopes: ${missingScopes.join(', ')}`,
+          message: `Missing required scopes: ${missingScopes.join(', ')}`,
           resource: apiResource,
           scopes
         }
@@ -267,6 +266,81 @@ export class ApiResourceService {
       }
     } catch (error) {
       console.error('Error creating M2M application:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Ensure an M2M role exists with the necessary permissions
+   * This will create a role if it doesn't exist or update it if it does
+   */
+  private async ensureM2MRoleExists(resourceId: string) {
+    try {
+      console.log('Checking if M2M role exists...')
+      
+      // Get all roles
+      const roles = await managementApiService.request('/api/roles', 'GET')
+      console.log(`Found ${roles.length} roles in Logto`)
+      
+      // Find our M2M role
+      const roleName = 'main-api-m2m-role'
+      const existingRole = roles.find((role: any) => role.name === roleName && role.type === 'MachineToMachine')
+      
+      if (existingRole) {
+        console.log('M2M role already exists:', existingRole.id)
+        
+        // Get the scopes for the resource
+        const scopes = await this.getApiResourceScopes(resourceId)
+        const scopeIds = scopes.map((scope: any) => scope.id)
+        
+        // Get the scopes already assigned to the role
+        const roleScopes = await managementApiService.request(`/api/roles/${existingRole.id}/scopes`, 'GET')
+        console.log(`Role has ${roleScopes.length} scopes already assigned`)
+        
+        // Find scopes that are not already assigned to the role
+        const existingScopeIds = roleScopes.map((scope: any) => scope.id)
+        const missingScopeIds = scopeIds.filter(id => !existingScopeIds.includes(id))
+        
+        if (missingScopeIds.length > 0) {
+          console.log(`Adding ${missingScopeIds.length} missing scopes to role ${existingRole.id}`)
+          
+          // Add each missing scope individually to avoid errors with existing scopes
+          for (const scopeId of missingScopeIds) {
+            try {
+              await managementApiService.request(`/api/roles/${existingRole.id}/scopes`, 'POST', {
+                scopeIds: [scopeId]
+              })
+              console.log(`Added scope ${scopeId} to role ${existingRole.id}`)
+            } catch (error) {
+              console.warn(`Error adding scope ${scopeId} to role ${existingRole.id}:`, error)
+            }
+          }
+        } else {
+          console.log('All required scopes are already assigned to the role')
+        }
+        
+        return existingRole
+      }
+      
+      // Create a new M2M role
+      console.log('Creating new M2M role...')
+      
+      // Get the scopes for the resource
+      const scopes = await this.getApiResourceScopes(resourceId)
+      const scopeIds = scopes.map((scope: any) => scope.id)
+      
+      // Create the role with all scopes
+      const newRole = await managementApiService.request('/api/roles', 'POST', {
+        name: roleName,
+        description: 'Machine-to-machine role for API access',
+        type: 'MachineToMachine',
+        scopeIds
+      })
+      
+      console.log('New M2M role created:', JSON.stringify(newRole, null, 2))
+      return newRole
+    } catch (error) {
+      console.error('Error ensuring M2M role exists:', error)
       throw error
     }
   }
