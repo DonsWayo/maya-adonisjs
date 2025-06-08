@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailhog
+  namespace: maya-apps
+  labels:
+    app: mailhog
+    app.kubernetes.io/name: mailhog
+    app.kubernetes.io/part-of: maya
+    app.kubernetes.io/component: email
+spec:
+  type: ClusterIP
+  selector:
+    app: mailhog
+  ports:
+  - name: smtp
+    port: 1025
+    targetPort: smtp
+    protocol: TCP
+  - name: http
+    port: 8025
+    targetPort: http
+    protocol: TCP

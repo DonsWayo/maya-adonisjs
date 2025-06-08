@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-app-config
+  namespace: maya-apps
+  labels:
+    app: monitoring
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/part-of: maya
+data:
+  # Application Configuration
+  NODE_ENV: "production"
+  PORT: "3334"
+  HOST: "0.0.0.0"
+  LOG_LEVEL: "info"
+  
+  # Database Configuration
+  DB_CONNECTION: "pg"
+  DB_HOST: "maya-postgres-rw.maya-data.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_DATABASE: "maya"
+  DB_USER: "maya"
+  
+  # Redis Configuration
+  REDIS_CONNECTION: "local"
+  REDIS_HOST: "maya-redis.maya-data.svc.cluster.local"
+  REDIS_PORT: "6379"
+  
+  # ClickHouse Configuration
+  CLICKHOUSE_HOST: "http://maya-clickhouse.maya-data.svc.cluster.local:8123"
+  CLICKHOUSE_USER: "default"
+  CLICKHOUSE_DB: "monitoring"
+  CLICKHOUSE_REQUEST_TIMEOUT: "30000"
+  CLICKHOUSE_COMPRESSION_REQUEST: "false"
+  CLICKHOUSE_COMPRESSION_RESPONSE: "true"
+  
+  # Session Configuration
+  SESSION_DRIVER: "redis"
+  
+  # Cache Configuration
+  CACHE_STORE: "redis"
+  
+  # Drive Configuration
+  DRIVE_DISK: "s3"
+  S3_ENDPOINT: "minio.maya-data.svc.cluster.local:9000"
+  S3_BUCKET: "maya-monitoring"
+  S3_REGION: "us-east-1"
+  
+  # Logto Configuration
+  LOGTO_URL: "http://logto.maya-auth.svc.cluster.local:3001"
+  LOGTO_AUTHORIZE_URL: "https://logto.dev.hakicloud.com/oidc/auth"
+  LOGTO_ACCESS_TOKEN_URL: "http://logto.maya-auth.svc.cluster.local:3001/oidc/token"
+  LOGTO_USER_INFO_URL: "http://logto.maya-auth.svc.cluster.local:3001/oidc/me"
+  LOGTO_CALLBACK_URL: "https://monitoring.dev.hakicloud.com/logto/callback"
+  
+  # Main App API Configuration (for M2M)
+  MAIN_APP_API_URL: "http://main.maya-apps.svc.cluster.local:3333/api/v1"
+  API_RESOURCE_IDENTIFIER: "https://main.dev.hakicloud.com"
+  
+  # Public URLs
+  APP_URL: "https://monitoring.dev.hakicloud.com"
+  ASSET_URL: "https://monitoring.dev.hakicloud.com"

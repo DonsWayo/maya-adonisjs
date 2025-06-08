@@ -1,0 +1,161 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Reference to base configuration
+bases:
+  - ../../base
+
+# Namespace for this environment
+namespace: maya-apps
+
+# Name prefix for all resources
+namePrefix: dev-
+
+# Common labels for this environment
+commonLabels:
+  environment: development
+  app.kubernetes.io/instance: maya-dev
+
+# Common annotations
+commonAnnotations:
+  deployment.kubernetes.io/revision: "1"
+
+# Environment-specific patches
+patches:
+  # Reduce replicas for development
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: main
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: logto
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+        
+  # Reduce resource requirements for development
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      labelSelector: "app.kubernetes.io/part-of=maya"
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "500m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "512Mi"
+
+# ConfigMap overrides for development
+configMapGenerator:
+  - name: main-app-config
+    namespace: maya-apps
+    behavior: merge
+    literals:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - APP_URL=https://main.dev.hakicloud.com
+      - LOGTO_URL=http://dev-logto.maya-auth.svc.cluster.local:3001
+      - LOGTO_AUTHORIZE_URL=https://logto.dev.hakicloud.com/oidc/auth
+      - LOGTO_CALLBACK_URL=https://main.dev.hakicloud.com/logto/callback
+  - name: monitoring-app-config
+    namespace: maya-apps
+    behavior: merge
+    literals:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - APP_URL=https://monitoring.dev.hakicloud.com
+      - LOGTO_URL=http://dev-logto.maya-auth.svc.cluster.local:3001
+      - LOGTO_AUTHORIZE_URL=https://logto.dev.hakicloud.com/oidc/auth
+      - LOGTO_CALLBACK_URL=https://monitoring.dev.hakicloud.com/logto/callback
+      - MAIN_APP_API_URL=http://dev-main.maya-apps.svc.cluster.local:3333/api/v1
+
+# Secret generator for development
+secretGenerator:
+  - name: database-credentials
+    namespace: maya-apps
+    type: Opaque
+    literals:
+      - postgres-password=dev-postgres-password
+      - redis-password=dev-redis-password
+      - clickhouse-password=dev-clickhouse-password
+  - name: logto-credentials
+    namespace: maya-apps
+    type: Opaque
+    literals:
+      - client-id=dev-client-id
+      - client-secret=dev-client-secret
+      - m2m-client-id=dev-m2m-client-id
+      - m2m-client-secret=dev-m2m-client-secret
+      - monitoring-client-id=dev-monitoring-client-id
+      - monitoring-client-secret=dev-monitoring-client-secret
+      - monitoring-m2m-client-id=dev-monitoring-m2m-client-id
+      - monitoring-m2m-client-secret=dev-monitoring-m2m-client-secret
+      - webhook-signing-key=dev-webhook-signing-key
+  - name: s3-credentials
+    namespace: maya-apps
+    type: Opaque
+    literals:
+      - access-key-id=minioadmin
+      - secret-access-key=minioadmin
+  - name: main-app-secrets
+    namespace: maya-apps
+    type: Opaque
+    behavior: replace
+    literals:
+      - app-key=dev-app-key-32-characters-long!!!
+  - name: monitoring-app-secrets
+    namespace: maya-apps
+    type: Opaque
+    behavior: replace
+    literals:
+      - app-key=dev-mon-key-32-characters-long!!!
+
+# Image overrides for development
+images:
+  - name: ghcr.io/your-org/maya-main
+    newTag: dev-latest
+  - name: ghcr.io/your-org/maya-monitoring
+    newTag: dev-latest
+
+# Replace domain in ingress
+replicas:
+  - name: dev-main-app
+    count: 1
+  - name: dev-monitoring-app
+    count: 1
+  - name: dev-logto
+    count: 1
+
+# Patch ingress hosts for development domain
+patchesStrategicMerge:
+  - ingress-patches.yaml
+
+# Additional components for development
+components:
+  - https://github.com/kubernetes-sigs/kustomize/config/samples/dev-tools

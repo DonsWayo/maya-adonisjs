@@ -1,0 +1,105 @@
+# Patch main app ingress for production domain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-app
+  namespace: maya-apps
+spec:
+  tls:
+  - hosts:
+    - main.hakicloud.com
+    secretName: main-app-tls
+  rules:
+  - host: main.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: main
+            port:
+              number: 3333
+---
+# Patch monitoring app ingress for production domain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoring-app
+  namespace: maya-apps
+spec:
+  tls:
+  - hosts:
+    - monitoring.hakicloud.com
+    secretName: monitoring-app-tls
+  rules:
+  - host: monitoring.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: monitoring
+            port:
+              number: 3334
+---
+# Patch Logto ingress for production domain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: logto
+  namespace: maya-auth
+spec:
+  tls:
+  - hosts:
+    - logto.hakicloud.com
+    - admin.logto.hakicloud.com
+    secretName: logto-tls
+  rules:
+  - host: logto.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: logto
+            port:
+              number: 3001
+  - host: admin.logto.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: logto
+            port:
+              number: 3002
+---
+# Patch MailHog ingress for production (restricted access)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mailhog
+  namespace: maya-apps
+  annotations:
+    # Add IP whitelist for production
+    traefik.ingress.kubernetes.io/router.middlewares: maya-ingress-basic-auth@kubernetescrd,maya-ingress-ip-whitelist@kubernetescrd
+spec:
+  tls:
+  - hosts:
+    - mailhog.hakicloud.com
+    secretName: mailhog-tls
+  rules:
+  - host: mailhog.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mailhog
+            port:
+              number: 8025

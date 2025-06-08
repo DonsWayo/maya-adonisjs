@@ -1,0 +1,80 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: logto
+  namespace: maya-auth
+  labels:
+    app: logto
+    app.kubernetes.io/name: logto
+    app.kubernetes.io/part-of: maya
+  annotations:
+    # Traefik annotations
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: maya-ingress-security-headers@kubernetescrd,maya-ingress-cors-auth@kubernetescrd
+    # Cert-manager
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Additional annotations
+    kubernetes.io/ingress.class: traefik
+spec:
+  tls:
+  - hosts:
+    - logto.dev.hakicloud.com
+    - admin.logto.dev.hakicloud.com
+    secretName: logto-tls
+  rules:
+  - host: logto.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: logto
+            port:
+              number: 3001
+  - host: admin.logto.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: logto
+            port:
+              number: 3002
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mailhog
+  namespace: maya-apps
+  labels:
+    app: mailhog
+    app.kubernetes.io/name: mailhog
+    app.kubernetes.io/part-of: maya
+  annotations:
+    # Traefik annotations
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: maya-ingress-security-headers@kubernetescrd,maya-ingress-basic-auth@kubernetescrd
+    # Cert-manager
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Additional annotations
+    kubernetes.io/ingress.class: traefik
+spec:
+  tls:
+  - hosts:
+    - mailhog.dev.hakicloud.com
+    secretName: mailhog-tls
+  rules:
+  - host: mailhog.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mailhog
+            port:
+              number: 8025

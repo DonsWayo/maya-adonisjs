@@ -1,0 +1,102 @@
+# Patch main app ingress for dev domain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-app
+  namespace: maya-apps
+spec:
+  tls:
+  - hosts:
+    - main.dev.hakicloud.com
+    secretName: dev-main-app-tls
+  rules:
+  - host: main.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dev-main
+            port:
+              number: 3333
+---
+# Patch monitoring app ingress for dev domain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoring-app
+  namespace: maya-apps
+spec:
+  tls:
+  - hosts:
+    - monitoring.dev.hakicloud.com
+    secretName: dev-monitoring-app-tls
+  rules:
+  - host: monitoring.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dev-monitoring
+            port:
+              number: 3334
+---
+# Patch Logto ingress for dev domain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: logto
+  namespace: maya-auth
+spec:
+  tls:
+  - hosts:
+    - logto.dev.hakicloud.com
+    - admin.logto.dev.hakicloud.com
+    secretName: dev-logto-tls
+  rules:
+  - host: logto.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dev-logto
+            port:
+              number: 3001
+  - host: admin.logto.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dev-logto
+            port:
+              number: 3002
+---
+# Patch MailHog ingress for dev domain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mailhog
+  namespace: maya-apps
+spec:
+  tls:
+  - hosts:
+    - mailhog.dev.hakicloud.com
+    secretName: dev-mailhog-tls
+  rules:
+  - host: mailhog.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dev-mailhog
+            port:
+              number: 8025

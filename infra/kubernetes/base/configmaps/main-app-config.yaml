@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: main-app-config
+  namespace: maya-apps
+  labels:
+    app: main
+    app.kubernetes.io/name: main
+    app.kubernetes.io/part-of: maya
+data:
+  # Application Configuration
+  NODE_ENV: "production"
+  PORT: "3333"
+  HOST: "0.0.0.0"
+  LOG_LEVEL: "info"
+  
+  # Database Configuration
+  DB_CONNECTION: "pg"
+  DB_HOST: "maya-postgres-rw.maya-data.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_DATABASE: "maya"
+  DB_USER: "maya"
+  
+  # Redis Configuration
+  REDIS_CONNECTION: "local"
+  REDIS_HOST: "maya-redis.maya-data.svc.cluster.local"
+  REDIS_PORT: "6379"
+  
+  # Session Configuration
+  SESSION_DRIVER: "redis"
+  
+  # Cache Configuration
+  CACHE_STORE: "redis"
+  
+  # Drive Configuration
+  DRIVE_DISK: "s3"
+  S3_ENDPOINT: "minio.maya-data.svc.cluster.local:9000"
+  S3_BUCKET: "maya-uploads"
+  S3_REGION: "us-east-1"
+  
+  # Mail Configuration (will use internal SMTP relay)
+  MAIL_MAILER: "smtp"
+  SMTP_HOST: "mailhog.maya-apps.svc.cluster.local"
+  SMTP_PORT: "1025"
+  MAIL_FROM_ADDRESS: "noreply@maya.example.com"
+  MAIL_FROM_NAME: "Maya"
+  
+  # Logto Configuration
+  LOGTO_URL: "http://logto.maya-auth.svc.cluster.local:3001"
+  LOGTO_AUTHORIZE_URL: "https://logto.dev.hakicloud.com/oidc/auth"
+  LOGTO_ACCESS_TOKEN_URL: "http://logto.maya-auth.svc.cluster.local:3001/oidc/token"
+  LOGTO_USER_INFO_URL: "http://logto.maya-auth.svc.cluster.local:3001/oidc/me"
+  LOGTO_CALLBACK_URL: "https://main.dev.hakicloud.com/logto/callback"
+  
+  # API Resource Configuration
+  API_RESOURCE_IDENTIFIER: "https://main.dev.hakicloud.com"
+  
+  # Public URLs
+  APP_URL: "https://main.dev.hakicloud.com"
+  ASSET_URL: "https://main.dev.hakicloud.com"

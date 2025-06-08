@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-app
+  namespace: maya-apps
+  labels:
+    app: main
+    app.kubernetes.io/name: main
+    app.kubernetes.io/part-of: maya
+  annotations:
+    # Traefik annotations
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: maya-ingress-security-headers@kubernetescrd,maya-ingress-rate-limit@kubernetescrd
+    # Cert-manager
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Additional annotations
+    kubernetes.io/ingress.class: traefik
+spec:
+  tls:
+  - hosts:
+    - main.dev.hakicloud.com
+    secretName: main-app-tls
+  rules:
+  - host: main.dev.hakicloud.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: main
+            port:
+              number: 3333

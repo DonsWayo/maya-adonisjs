@@ -1,0 +1,106 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: maya
+
+# Resources to be included
+resources:
+  # Namespaces
+  - namespaces/namespaces.yaml
+  
+  # ConfigMaps
+  - configmaps/main-app-config.yaml
+  - configmaps/monitoring-app-config.yaml
+  
+  # Deployments
+  - deployments/main-app-deployment.yaml
+  - deployments/monitoring-app-deployment.yaml
+  - deployments/logto-deployment.yaml
+  - deployments/mailhog-deployment.yaml
+  
+  # Services
+  - services/main-app-service.yaml
+  - services/monitoring-app-service.yaml
+  - services/logto-service.yaml
+  - services/mailhog-service.yaml
+  
+  # PVCs
+  - pvcs/logto-pvc.yaml
+  
+  # Ingress
+  - ingress/main-app-ingress.yaml
+  - ingress/monitoring-app-ingress.yaml
+  - ingress/logto-ingress.yaml
+  - ingress/traefik-middleware.yaml
+
+# Images that can be overridden in overlays
+images:
+  - name: ghcr.io/your-org/maya-main
+    newTag: latest
+  - name: ghcr.io/your-org/maya-monitoring
+    newTag: latest
+  - name: svhd/logto
+    newTag: latest
+  - name: mailhog/mailhog
+    newTag: latest
+
+# ConfigMap generator for additional configurations
+configMapGenerator:
+  - name: maya-env-config
+    namespace: maya-apps
+    literals:
+      - ENVIRONMENT=base
+      - LOG_LEVEL=info
+
+# Secret generator (placeholder - actual secrets should be in overlays)
+secretGenerator:
+  - name: main-app-secrets
+    namespace: maya-apps
+    type: Opaque
+    literals:
+      - app-key=changeme
+  - name: monitoring-app-secrets
+    namespace: maya-apps
+    type: Opaque
+    literals:
+      - app-key=changeme
+
+# Patches that can be extended in overlays
+patches:
+  # Resource limits can be adjusted per environment
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      labelSelector: "app.kubernetes.io/part-of=maya"
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/annotations/updated-at
+        value: "2024-01-01"
+
+# Variable replacements
+vars:
+  - name: MAIN_APP_SERVICE
+    objref:
+      kind: Service
+      name: main
+      apiVersion: v1
+    fieldref:
+      fieldpath: metadata.name
+  - name: MONITORING_APP_SERVICE
+    objref:
+      kind: Service
+      name: monitoring
+      apiVersion: v1
+    fieldref:
+      fieldpath: metadata.name
+  - name: LOGTO_SERVICE
+    objref:
+      kind: Service
+      name: logto
+      apiVersion: v1
+    fieldref:
+      fieldpath: metadata.name

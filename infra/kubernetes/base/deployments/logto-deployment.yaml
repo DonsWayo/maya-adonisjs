@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logto
+  namespace: maya-auth
+  labels:
+    app: logto
+    app.kubernetes.io/name: logto
+    app.kubernetes.io/part-of: maya
+    app.kubernetes.io/component: auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logto
+  template:
+    metadata:
+      labels:
+        app: logto
+        app.kubernetes.io/name: logto
+        app.kubernetes.io/part-of: maya
+        app.kubernetes.io/component: auth
+    spec:
+      serviceAccountName: logto
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+      # Initialize database
+      - name: init-db
+        image: svhd/logto:latest
+        command: ["sh", "-c", "npm run cli db seed -- --swe || true"]
+        env:
+        - name: DB_URL
+          value: "postgres://logto:p0stgr3s@logto-postgres-rw.maya-data.svc.cluster.local:5432/logto"
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+      containers:
+      - name: logto
+        image: svhd/logto:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3001
+          protocol: TCP
+        - name: admin
+          containerPort: 3002
+          protocol: TCP
+        env:
+        - name: TRUST_PROXY_HEADER
+          value: "1"
+        - name: DB_URL
+          value: "postgres://logto:p0stgr3s@logto-postgres-rw.maya-data.svc.cluster.local:5432/logto"
+        - name: ENDPOINT
+          value: "https://logto.dev.hakicloud.com"
+        - name: ADMIN_ENDPOINT
+          value: "https://admin.logto.dev.hakicloud.com"
+        - name: PORT
+          value: "3001"
+        - name: ADMIN_PORT
+          value: "3002"
+        # CORS Configuration
+        - name: CORS_ALLOWED_ORIGINS
+          value: "https://main.dev.hakicloud.com,https://monitoring.dev.hakicloud.com,https://docs.dev.hakicloud.com"
+        - name: CORS_ALLOWED_METHODS
+          value: "GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD"
+        - name: CORS_ALLOWED_HEADERS
+          value: "*"
+        - name: CORS_ALLOW_CREDENTIALS
+          value: "true"
+        - name: CORS_MAX_AGE
+          value: "86400"
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /api/status
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/status
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false  # Logto needs write access
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: logto-data
+          mountPath: /opt/logto/packages/core/data
+      volumes:
+      - name: logto-data
+        persistentVolumeClaim:
+          claimName: logto-data
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - logto
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: logto
+  namespace: maya-auth
+  labels:
+    app: logto
+    app.kubernetes.io/name: logto
+    app.kubernetes.io/part-of: maya

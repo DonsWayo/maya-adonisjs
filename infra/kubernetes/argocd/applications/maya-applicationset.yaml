@@ -1,0 +1,80 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: maya-environments
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - env: dev
+        cluster: in-cluster
+        namespace: maya-apps
+        domain: dev.hakicloud.com
+        branch: main
+        autoSync: true
+        prune: true
+        replicas: 1
+      - env: prod
+        cluster: in-cluster
+        namespace: maya-apps
+        domain: hakicloud.com
+        branch: main
+        autoSync: false
+        prune: false
+        replicas: 3
+        
+  template:
+    metadata:
+      name: 'maya-{{env}}'
+      labels:
+        environment: '{{env}}'
+        app.kubernetes.io/part-of: maya
+        app.kubernetes.io/managed-by: argocd
+    spec:
+      project: maya
+      
+      source:
+        repoURL: https://github.com/your-org/maya-adonisjs
+        targetRevision: '{{branch}}'
+        path: infra/kubernetes/overlays/{{env}}
+        
+        kustomize:
+          commonLabels:
+            environment: '{{env}}'
+          images:
+          - ghcr.io/your-org/maya-main:{{env}}-${ARGOCD_APP_REVISION}
+          - ghcr.io/your-org/maya-monitoring:{{env}}-${ARGOCD_APP_REVISION}
+      
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      
+      syncPolicy:
+        automated:
+          prune: '{{prune}}'
+          selfHeal: '{{autoSync}}'
+          allowEmpty: false
+        syncOptions:
+        - CreateNamespace=true
+        - PrunePropagationPolicy=foreground
+        - PruneLast=true
+        - RespectIgnoreDifferences=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      
+      revisionHistoryLimit: 10
+      
+      ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        jsonPointers:
+        - /spec/replicas
+      - group: v1
+        kind: Service
+        jsonPointers:
+        - /spec/clusterIP

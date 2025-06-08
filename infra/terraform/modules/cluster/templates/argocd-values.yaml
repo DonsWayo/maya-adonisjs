@@ -1,0 +1,178 @@
+# ArgoCD Helm Values
+global:
+  domain: argocd.${domain}
+  
+server:
+  # Enable GRPC for CLI access
+  grpc:
+    ingress:
+      enabled: true
+      annotations:
+        kubernetes.io/ingress.class: traefik
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+      hosts:
+        - argocd-grpc.${domain}
+      tls:
+        - secretName: argocd-grpc-tls
+          hosts:
+            - argocd-grpc.${domain}
+  
+  # Web UI ingress
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd
+    hosts:
+      - argocd.${domain}
+    tls:
+      - secretName: argocd-server-tls
+        hosts:
+          - argocd.${domain}
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  # High availability
+  replicas: 2
+  
+  # Enable metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Repository credentials
+configs:
+  secret:
+    createSecret: true
+    githubSecret: "${github_token}"
+    
+  repositories:
+    maya-gitops:
+      url: https://github.com/your-org/maya-gitops
+      name: maya-gitops
+      type: git
+      
+  # ConfigManagementPlugins for custom tools
+  cm:
+    create: true
+    plugins: |
+      - name: kustomize-build
+        generate:
+          command: ["kustomize", "build", "."]
+      - name: helm-template
+        generate:
+          command: ["helm", "template", ".", "--include-crds"]
+
+# Redis HA for production
+redis-ha:
+  enabled: true
+  redis:
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  
+  sentinel:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# Controller configuration
+controller:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Enable metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Repo server configuration
+repoServer:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  
+  # Enable metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Dex configuration (OIDC)
+dex:
+  enabled: false  # We'll use Logto for authentication
+
+# Application controller
+applicationSet:
+  enabled: true
+  replicas: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Notifications
+notifications:
+  enabled: true
+  argocdUrl: https://argocd.${domain}
+  
+  # Slack notifications
+  notifiers:
+    service.slack: |
+      token: $slack-token
+  
+  # Notification templates
+  templates:
+    template.app-deployed: |
+      message: |
+        Application {{.app.metadata.name}} is now running new version.
+    template.app-health-degraded: |
+      message: |
+        Application {{.app.metadata.name}} has degraded health.
+    template.app-sync-failed: |
+      message: |
+        Application {{.app.metadata.name}} sync failed.
+  
+  # Triggers
+  triggers:
+    trigger.on-deployed: |
+      - when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
+        send: [app-deployed]
+    trigger.on-health-degraded: |
+      - when: app.status.health.status == 'Degraded'
+        send: [app-health-degraded]
+    trigger.on-sync-failed: |
+      - when: app.status.operationState.phase in ['Error', 'Failed']
+        send: [app-sync-failed]

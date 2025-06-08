@@ -1,0 +1,80 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Reference to base configuration
+bases:
+  - ../../base
+
+# Namespace for production
+namespace: maya-apps
+
+# Common labels for production
+commonLabels:
+  environment: production
+  app.kubernetes.io/instance: maya-prod
+
+# Production patches
+patches:
+  # Increase replicas for production
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: main
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: logto
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+# ConfigMap overrides for production
+configMapGenerator:
+  - name: main-app-config
+    namespace: maya-apps
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - APP_URL=https://main.hakicloud.com
+      - LOGTO_URL=http://logto.maya-auth.svc.cluster.local:3001
+      - LOGTO_AUTHORIZE_URL=https://logto.hakicloud.com/oidc/auth
+      - LOGTO_CALLBACK_URL=https://main.hakicloud.com/logto/callback
+  - name: monitoring-app-config
+    namespace: maya-apps
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - APP_URL=https://monitoring.hakicloud.com
+      - LOGTO_URL=http://logto.maya-auth.svc.cluster.local:3001
+      - LOGTO_AUTHORIZE_URL=https://logto.hakicloud.com/oidc/auth
+      - LOGTO_CALLBACK_URL=https://monitoring.hakicloud.com/logto/callback
+      - MAIN_APP_API_URL=http://main.maya-apps.svc.cluster.local:3333/api/v1
+
+# Image overrides for production
+images:
+  - name: ghcr.io/your-org/maya-main
+    newTag: prod-latest
+  - name: ghcr.io/your-org/maya-monitoring
+    newTag: prod-latest
+
+# Patch ingress hosts for production domain
+patchesStrategicMerge:
+  - ingress-patches.yaml
