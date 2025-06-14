@@ -1,0 +1,252 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Monorepo Workspace Management
+
+## Workspace Structure
+
+The project uses pnpm workspaces with TurboRepo for efficient monorepo management:
+
+```
+maya-adonisjs/
+├── apps/
+│   ├── main/           # Primary AdonisJS application
+│   ├── monitoring/     # Monitoring and analytics app
+│   └── docs/          # Documentation site (Next.js)
+├── packages/
+│   ├── ui/            # Shared UI component library
+│   ├── eslint-config/ # Shared ESLint configuration
+│   └── typescript-config/ # Shared TypeScript configuration
+└── config/            # Shared configuration files
+```
+
+## Package Management with pnpm
+
+### Workspace Dependencies
+
+Use workspace references for internal packages:
+
+```json
+{
+  "dependencies": {
+    "@workspace/ui": "workspace:*",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*"
+  }
+}
+```
+
+### pnpm Commands
+
+```bash
+# Install dependencies for specific workspace
+pnpm --filter main install
+pnpm --filter @workspace/ui install
+
+# Add dependencies to specific workspace
+pnpm --filter main add @adonisjs/core
+pnpm --filter @workspace/ui add react
+
+# Run scripts in specific workspace
+pnpm --filter main dev
+pnpm --filter docs build
+
+# Run scripts in all workspaces
+pnpm -r dev
+pnpm -r build
+pnpm -r lint
+```
+
+## Turbo Build System
+
+### Task Pipeline Configuration
+
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "build/**", "dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.test.ts", "**/*.test.tsx"]
+    }
+  }
+}
+```
+
+### Turbo Commands
+
+```bash
+# Build all packages and apps
+turbo build
+
+# Run development servers
+turbo dev
+
+# Lint all packages
+turbo lint
+
+# Run tests
+turbo test
+
+# Build with specific filter
+turbo build --filter=main
+turbo build --filter=@workspace/ui
+
+# Force rebuild without cache
+turbo build --force
+
+# Parallel execution
+turbo dev --parallel
+```
+
+## Shared Package Patterns
+
+### UI Package Structure
+
+```
+packages/ui/
+├── src/
+│   ├── components/     # React components
+│   ├── hooks/         # Custom hooks
+│   ├── lib/           # Utilities and helpers
+│   └── styles/        # Global styles
+├── package.json
+├── tsconfig.json
+├── components.json    # Shadcn/UI configuration
+└── postcss.config.mjs
+```
+
+### Configuration Package Structure
+
+```
+packages/eslint-config/
+├── library.js         # Library-specific ESLint config
+├── next.js           # Next.js-specific config
+├── react.js          # React-specific config
+└── package.json
+
+packages/typescript-config/
+├── base.json         # Base TypeScript config
+├── nextjs.json       # Next.js-specific config
+├── react.json        # React-specific config
+└── package.json
+```
+
+## Dependency Management
+
+### Shared Dependencies
+
+Keep common dependencies in the root package.json:
+- `typescript`
+- `prettier`
+- `turbo`
+- `@workspace/eslint-config`
+- `@workspace/typescript-config`
+
+### App-Specific Dependencies
+
+Each app manages its own dependencies:
+- **main**: AdonisJS, Inertia.js, React
+- **monitoring**: AdonisJS, ClickHouse client
+- **docs**: Next.js, Fumadocs
+- **ui**: React, Radix UI, Tailwind CSS
+
+## Build Optimization
+
+### Turbo Cache
+
+Turbo automatically caches build outputs:
+- Builds are cached based on input files
+- Shared cache across team members
+- Remote caching for CI/CD
+
+### Incremental Builds
+
+- Only rebuild changed packages
+- Dependency graph analysis
+- Parallel execution of independent tasks
+
+## Development Workflow
+
+### Starting Development
+
+```bash
+# Start all development servers
+pnpm dev
+
+# Start specific app
+pnpm --filter main dev
+pnpm --filter docs dev
+
+# Start with Turbo
+turbo dev --filter=main
+```
+
+### Adding New Packages
+
+1. Create new directory in `packages/` or `apps/`
+2. Add to `pnpm-workspace.yaml` if needed
+3. Create `package.json` with proper name and dependencies
+4. Add to Turbo pipeline if needed
+
+### Cross-Package Dependencies
+
+- Use workspace references (`workspace:*`)
+- Ensure proper build order in Turbo config
+- Use TypeScript project references for type checking
+
+## CI/CD Integration
+
+### Build Pipeline
+
+```yaml
+# Example GitHub Actions workflow
+- name: Install dependencies
+  run: pnpm install --frozen-lockfile
+
+- name: Build packages
+  run: turbo build
+
+- name: Run tests
+  run: turbo test
+
+- name: Lint code
+  run: turbo lint
+```
+
+### Remote Caching
+
+Configure Turbo for remote caching:
+```bash
+# Set up remote cache
+turbo login
+turbo link
+
+# Or use environment variables
+TURBO_TOKEN=your-token turbo build
+```
+
+## Best Practices
+
+1. **Use workspace references** for internal dependencies
+2. **Configure proper build order** in Turbo pipeline
+3. **Share common configuration** across packages
+4. **Use consistent naming** for packages (`@workspace/package-name`)
+5. **Optimize build outputs** and cache configuration
+6. **Keep packages focused** on single responsibilities
+7. **Document package APIs** and usage patterns

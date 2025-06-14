@@ -1,0 +1,145 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Docker Development Environment
+
+## Multi-Service Architecture
+
+The project uses a comprehensive Docker Compose setup with these services:
+
+### Core Services
+- **Main App**: AdonisJS application on port 3333 (main.localhost)
+- **Monitoring App**: Analytics and monitoring on port 3334 (monitoring.localhost)  
+- **Docs App**: Next.js documentation on port 3300 (docs.localhost)
+- **PostgreSQL**: TimescaleDB with PgAI integration on port 5432
+- **Redis**: Caching and sessions on port 6379
+- **ClickHouse**: Analytics database on ports 8123 (HTTP) and 9000 (Native)
+
+### Authentication & Communication
+- **Logto**: Authentication service on ports 3001-3002 (logto.localhost)
+- **Traefik**: Reverse proxy and service discovery on port 80
+- **MailHog**: Email testing on ports 1025 (SMTP) and 8025 (UI)
+
+### Optional Services (Profiles)
+- **Ollama**: AI model inference on port 11434 (profile: ai)
+- **MinIO**: S3-compatible storage (profile: dev)
+
+## Docker Compose Commands
+
+```bash
+# Start all services
+docker compose up -d
+
+# Start with AI services
+docker compose --profile ai up -d
+
+# Start with development services  
+docker compose --profile dev up -d
+
+# View logs
+docker compose logs -f main
+docker compose logs -f monitoring
+
+# Rebuild specific service
+docker compose build main --no-cache
+
+# Execute commands in containers
+docker exec -it maya_main node ace migration:run
+docker exec -it maya_monitoring node ace db:seed
+```
+
+## Multi-Stage Dockerfile Pattern
+
+Use multi-stage builds for all applications:
+
+```dockerfile
+# Development stage
+FROM node:20-alpine as development
+WORKDIR /app
+RUN corepack enable pnpm
+COPY package*.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY . .
+EXPOSE 3333
+CMD ["pnpm", "dev"]
+
+# Production stage  
+FROM node:20-alpine as production
+WORKDIR /app
+RUN corepack enable pnpm
+COPY package*.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+COPY . .
+RUN pnpm build
+EXPOSE 3333
+CMD ["pnpm", "start"]
+```
+
+## Service Discovery
+
+Services communicate using Docker network hostnames:
+- Database: `pgsql:5432`
+- Redis: `redis:6379`
+- ClickHouse: `clickhouse:8123`
+- Logto: `logto:3001`
+- MailHog SMTP: `mailhog:1025`
+- Ollama: `ollama:11434`
+
+## Volume Management
+
+Persistent data volumes:
+- `pgsql_data`: PostgreSQL database data
+- `redis_data`: Redis persistence
+- `clickhouse_data`: ClickHouse data
+- `logto_data`: Logto configuration and data
+- `ollama_data`: AI model storage
+- `main_uploads`: Application file uploads
+- `main_tmp`: Temporary files
+
+## Environment Configuration
+
+Each service uses environment variables for configuration:
+- Database connections use Docker service names
+- External URLs use `.localhost` domains for Traefik routing
+- Development vs production settings controlled by `NODE_ENV`
+
+## Health Checks
+
+Implement proper health checks for all services:
+
+```yaml
+healthcheck:
+  test: ['CMD', 'curl', '-f', 'http://localhost:3333/health']
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+```
+
+## Traefik Configuration
+
+Use Traefik labels for service routing:
+
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.main.rule=Host(`main.localhost`)"
+  - "traefik.http.services.main.loadbalancer.server.port=3333"
+```
+
+## AI Integration
+
+- PostgreSQL configured with PgAI extension
+- Ollama serves Gemma 3 model for AI capabilities
+- PgAI vectorizer worker for background processing
+- Database AI host configured as `http://ollama:11434`
+
+## Development Workflow
+
+1. Start with `docker compose up -d`
+2. Applications auto-reload on code changes via volume mounts
+3. Access services through Traefik at `.localhost` domains
+4. Use MailHog for email testing at `mailhog.localhost`
+5. Monitor services via Traefik dashboard at `localhost:8080`

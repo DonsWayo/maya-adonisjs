@@ -1,0 +1,259 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Multi-App Ecosystem Architecture
+
+## Control Plane Pattern
+
+The `main` app serves as the **central control plane** for the entire ecosystem:
+
+### Core Responsibilities of Main App
+
+1. **Entity Management**: Manages all shared core entities
+   - Users and user authentication
+   - Companies and organizational structure
+   - Projects and project management
+   - Teams and team memberships
+   - Roles and permissions
+   - API tokens and access control
+
+2. **Authentication & Authorization Hub**
+   - Logto integration for identity management
+   - Centralized role-based access control (RBAC)  
+   - API token management for inter-app communication
+   - User session management across all apps
+
+3. **Shared Services Provider**
+   - Email service and templates
+   - File storage and media management
+   - Notification system
+   - Audit logging and activity tracking
+   - System configuration management
+
+4. **API Gateway Functions**
+   - Provides REST/GraphQL APIs for other apps
+   - Standardized data models and interfaces
+   - Rate limiting and API security
+   - Inter-app communication protocols
+
+## App Communication Patterns
+
+### API-First Architecture
+
+Other apps interact with main through well-defined APIs:
+
+```typescript
+// In monitoring app - consuming main's user data
+import { MainAPIClient } from '#services/main_api_client'
+
+export class UserService {
+  private mainAPI = new MainAPIClient()
+
+  async getUsersByCompany(companyId: number) {
+    return await this.mainAPI.get(`/companies/${companyId}/users`)
+  }
+
+  async getUserPermissions(userId: number) {
+    return await this.mainAPI.get(`/users/${userId}/permissions`)
+  }
+}
+```
+
+### Shared Authentication
+
+All apps share the same authentication system:
+
+```typescript
+// Middleware for validating tokens from main
+export class AuthMiddleware {
+  async handle({ request, response }: HttpContext, next: NextFn) {
+    const token = request.header('authorization')
+    
+    // Validate token against main app's auth service
+    const user = await this.validateTokenWithMain(token)
+    if (!user) {
+      return response.unauthorized('Invalid token')
+    }
+    
+    request.user = user
+    await next()
+  }
+}
+```
+
+## Entity Sharing Patterns
+
+### Core Entities Managed by Main
+
+```typescript
+// Main app entities that are shared across apps
+export interface User {
+  id: number
+  email: string
+  name: string
+  companyId: number
+  roles: string[]
+  permissions: string[]
+  isActive: boolean
+}
+
+export interface Company {
+  id: number
+  name: string
+  slug: string
+  settings: CompanySettings
+  subscription: SubscriptionInfo
+}
+
+export interface Project {
+  id: number
+  name: string
+  companyId: number
+  ownerId: number
+  members: ProjectMember[]
+  status: ProjectStatus
+}
+```
+
+### API Endpoints from Main
+
+Main app exposes standardized endpoints:
+
+```typescript
+// Main app API routes for other apps
+Route.group(() => {
+  // User management
+  Route.get('/users/:id', 'UsersController.show')
+  Route.get('/companies/:id/users', 'UsersController.byCompany')
+  
+  // Company management
+  Route.get('/companies/:id', 'CompaniesController.show')
+  Route.get('/companies/:id/projects', 'ProjectsController.byCompany')
+  
+  // Permission checking
+  Route.post('/auth/verify-permission', 'AuthController.verifyPermission')
+  Route.post('/auth/validate-token', 'AuthController.validateToken')
+  
+}).prefix('/api/v1').middleware('apiAuth')
+```
+
+## App-Specific Domain Logic
+
+### Focused App Responsibilities
+
+Each app handles its own specific domain while leveraging main for shared data:
+
+**Monitoring App Example:**
+```typescript
+// Monitoring app focuses on its domain
+export class MonitoringController {
+  async createAlert({ request, auth }: HttpContext) {
+    // Get user from main app context
+    const user = auth.user!
+    
+    // Monitoring-specific logic
+    const alert = await Alert.create({
+      ...request.only(['title', 'description', 'severity']),
+      userId: user.id,
+      companyId: user.companyId
+    })
+    
+    // Use main app's notification service
+    await this.notifyMainApp('alert.created', {
+      alertId: alert.id,
+      userId: user.id
+    })
+    
+    return alert
+  }
+}
+```
+
+**Future App Examples:**
+- **Billing App**: Manages subscriptions, invoices, payments
+- **CRM App**: Handles customer relationships, sales pipeline
+- **Analytics App**: Provides business intelligence, reporting
+- **Support App**: Ticket management, customer support
+
+## Inter-App Communication
+
+### Event-Driven Architecture
+
+Apps communicate through events for loose coupling:
+
+```typescript
+// Main app publishes events
+export class UserService {
+  async createUser(userData: CreateUserData) {
+    const user = await User.create(userData)
+    
+    // Notify other apps
+    await this.publishEvent('user.created', {
+      userId: user.id,
+      companyId: user.companyId,
+      email: user.email
+    })
+    
+    return user
+  }
+}
+
+// Other apps subscribe to events
+export class MonitoringUserSync {
+  @subscribe('user.created')
+  async handleUserCreated(payload: UserCreatedEvent) {
+    // Create user profile in monitoring app
+    await MonitoringUser.create({
+      mainUserId: payload.userId,
+      companyId: payload.companyId,
+      email: payload.email
+    })
+  }
+}
+```
+
+### Shared Database Strategy
+
+- **Main Database**: Contains all core entities (users, companies, projects)
+- **App-Specific Databases**: Each app can have its own database for domain-specific data
+- **Cross-References**: Apps store references to main entities by ID
+- **Data Consistency**: Use transactions and events to maintain consistency
+
+## Scaling Patterns
+
+### Adding New Apps
+
+When adding a new app to the ecosystem:
+
+1. **Create App Structure**: Follow the established app pattern
+2. **Configure Authentication**: Integrate with main's auth system
+3. **Define API Contracts**: Establish what data the app needs from main
+4. **Set Up Data Sync**: Implement necessary data synchronization
+5. **Add to Docker Compose**: Include in the development environment
+6. **Update Traefik**: Configure routing for the new app
+
+### Development Workflow
+
+```bash
+# Start the control plane first
+pnpm --filter main dev
+
+# Start specific apps that depend on main
+pnpm --filter monitoring dev
+pnpm --filter billing dev
+
+# Or start all apps
+pnpm dev
+```
+
+## Security Considerations
+
+- **API Security**: All inter-app communication uses authenticated APIs
+- **Token Management**: Main app manages and validates all access tokens
+- **Permission Inheritance**: Apps inherit permissions from main's RBAC system
+- **Audit Trail**: All cross-app activities are logged in main's audit system
+- **Rate Limiting**: API endpoints are rate-limited to prevent abuse
+
+This architecture enables infinite horizontal scaling while maintaining consistency and security across the entire application ecosystem.

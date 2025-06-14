@@ -1,0 +1,74 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Maya AdonisJS Project Architecture
+
+This is a sophisticated monorepo built with AdonisJS 6, featuring multiple applications and shared packages.
+
+## Project Structure
+
+- **apps/main**: **Central Control Plane** - Manages core shared entities (users, companies, projects, auth, etc.)
+- **apps/monitoring**: Error monitoring and analytics application that consumes data from main
+- **apps/docs**: Next.js documentation site with Fumadocs
+- **packages/ui**: Shared UI component library with Shadcn/UI
+- **packages/eslint-config**: Shared ESLint configuration
+- **packages/typescript-config**: Shared TypeScript configuration
+
+## Multi-App Architecture Vision
+
+The `main` app serves as the central control plane for the entire ecosystem:
+- **Core Entity Management**: Users, Companies, Projects, Teams, Permissions
+- **Authentication & Authorization**: Logto integration, role-based access control
+- **Shared Services**: Email, notifications, file storage, audit logs
+- **API Gateway**: Provides APIs for other apps to consume shared data
+- **Admin Interface**: Central management UI for system administrators
+
+Other apps are designed to be lightweight and focused:
+- Each app handles its specific domain (monitoring, billing, CRM, etc.)
+- Apps consume shared entities via APIs from main
+- Apps can have their own specialized databases/services
+- All apps share the same authentication system managed by main
+
+## Key Technologies
+
+- **Backend**: AdonisJS 6 (Node.js framework)
+- **Frontend**: React 19 with Inertia.js and TailwindCSS v4
+- **UI Components**: Shadcn/UI with Radix primitives (New York style)
+- **Authentication**: Logto integration with hybrid system
+- **Database**: PostgreSQL with TimescaleDB and PgAI extensions
+- **Analytics**: ClickHouse for data warehousing
+- **Build System**: Turbo (TurboRepo) with pnpm
+- **DevOps**: Docker Compose for containerized development
+
+## Architecture Principles
+
+1. **Domain-Driven Design**: Each app uses domain modules (auth, users, companies, analytics, etc.)
+2. **Shared Components**: UI components are centralized in the `@workspace/ui` package
+3. **Type Safety**: Full TypeScript coverage across all applications
+4. **Modern Stack**: Uses latest versions of React 19, AdonisJS 6, and TailwindCSS v4
+5. **Monorepo Management**: Efficient package management with pnpm workspaces and Turbo
+
+## Import Patterns
+
+- Use path mapping with `#` prefix for internal imports in AdonisJS apps
+- Use `@workspace/ui` for shared UI components
+- Use workspace references for shared packages
+- Never use `react-router-dom` - use `react-router` instead
+
+## File Naming Conventions
+
+- **Controllers**: PascalCase with `Controller` suffix (e.g., `UsersController`)
+- **Models**: PascalCase singular (e.g., `User`, `Company`) 
+- **Services**: PascalCase with `Service` suffix (e.g., `UserService`)
+- **Components**: PascalCase for React components (e.g., `UserProfile`)
+- **Pages**: PascalCase with `Page` suffix for Inertia pages (e.g., `UsersIndexPage`)
+- **Types**: PascalCase for interfaces and types (e.g., `UserData`)
+
+## Docker Integration
+
+- Multi-stage Dockerfiles with development and production targets
+- Traefik for service routing with .localhost domains
+- PostgreSQL with PgAI and Ollama integration for AI capabilities
+- Complete development environment via Docker Compose

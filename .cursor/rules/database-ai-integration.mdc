@@ -1,0 +1,247 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Database and AI Integration Patterns
+
+## PostgreSQL with PgAI Integration
+
+The project uses TimescaleDB with PgAI extension for AI-powered database features.
+
+### Database Configuration
+
+- **Host**: `pgsql` (Docker service name)
+- **Port**: `5432`
+- **Extensions**: TimescaleDB, PgAI
+- **AI Integration**: Connected to Ollama at `http://ollama:11434`
+- **Model**: Gemma 3 (2B parameter version)
+
+### PgAI Usage Patterns
+
+```sql
+-- Enable the PgAI extension
+CREATE EXTENSION IF NOT EXISTS pgai;
+
+-- Generate text with Gemma 3
+SELECT ai.generate_text(
+  'gemma3:2b-instruct-q4_0', 
+  'Write a summary of this user data: ' || user_description
+) as ai_summary
+FROM users 
+WHERE id = 1;
+
+-- Create embeddings for vector search
+SELECT ai.embed(
+  'gemma3:2b-instruct-q4_0',
+  'This is content to embed for similarity search'
+) as embedding_vector;
+
+-- Batch processing with AI
+UPDATE articles 
+SET ai_summary = ai.generate_text(
+  'gemma3:2b-instruct-q4_0',
+  'Summarize this article: ' || content
+)
+WHERE ai_summary IS NULL;
+```
+
+### Model Integration with Lucid ORM
+
+```typescript
+import { BaseModel, column, computed } from '@adonisjs/lucid/orm'
+import { DateTime } from 'luxon'
+import Database from '@adonisjs/lucid/services/database'
+
+export default class Article extends BaseModel {
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare title: string
+
+  @column()
+  declare content: string
+
+  @column()
+  declare aiSummary: string | null
+
+  @column()
+  declare embedding: number[] | null
+
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+
+  // Generate AI summary using PgAI
+  async generateAISummary() {
+    const result = await Database.rawQuery(`
+      SELECT ai.generate_text(
+        'gemma3:2b-instruct-q4_0',
+        ?
+      ) as summary
+    `, [`Summarize this article: ${this.content}`])
+    
+    this.aiSummary = result.rows[0].summary
+    await this.save()
+  }
+
+  // Create embeddings for similarity search
+  async createEmbedding() {
+    const result = await Database.rawQuery(`
+      SELECT ai.embed(
+        'gemma3:2b-instruct-q4_0',
+        ?
+      ) as embedding
+    `, [this.content])
+    
+    this.embedding = result.rows[0].embedding
+    await this.save()
+  }
+
+  // Find similar articles using vector similarity
+  static async findSimilar(content: string, limit: number = 5) {
+    const result = await Database.rawQuery(`
+      WITH query_embedding AS (
+        SELECT ai.embed('gemma3:2b-instruct-q4_0', ?) as embedding
+      )
+      SELECT a.*, 
+             (a.embedding <-> query_embedding.embedding) as similarity_distance
+      FROM articles a, query_embedding
+      WHERE a.embedding IS NOT NULL
+      ORDER BY similarity_distance ASC
+      LIMIT ?
+    `, [content, limit])
+    
+    return result.rows
+  }
+}
+```
+
+### ClickHouse Analytics Integration
+
+```typescript
+import { clickhouse } from '#config/clickhouse'
+
+export class AnalyticsService {
+  // Store user interaction with AI features
+  async trackAIUsage(userId: number, feature: string, model: string) {
+    await clickhouse.insert({
+      table: 'ai_usage_events',
+      values: [{
+        user_id: userId,
+        feature: feature,
+        model: model,
+        timestamp: new Date(),
+        success: true
+      }]
+    })
+  }
+
+  // Analyze AI feature performance
+  async getAIUsageStats(startDate: Date, endDate: Date) {
+    const result = await clickhouse.query({
+      query: `
+        SELECT 
+          feature,
+          model,
+          count(*) as usage_count,
+          countIf(success = true) as success_count,
+          avg(response_time_ms) as avg_response_time
+        FROM ai_usage_events
+        WHERE timestamp BETWEEN {start_date:DateTime} AND {end_date:DateTime}
+        GROUP BY feature, model
+        ORDER BY usage_count DESC
+      `,
+      query_params: {
+        start_date: startDate,
+        end_date: endDate
+      }
+    })
+    
+    return result.json()
+  }
+}
+```
+
+### Migration Patterns
+
+```typescript
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+export default class extends BaseSchema {
+  protected tableName = 'articles'
+
+  async up() {
+    this.schema.createTable(this.tableName, (table) => {
+      table.increments('id')
+      table.string('title').notNullable()
+      table.text('content').notNullable()
+      table.text('ai_summary').nullable()
+      
+      // Vector embedding column for similarity search
+      table.specificType('embedding', 'vector(384)').nullable()
+      
+      // Indexes for performance
+      table.index(['title'])
+      
+      // Vector similarity index (requires pgvector extension)
+      // table.index(['embedding'], 'articles_embedding_idx', 'hnsw')
+      
+      table.timestamps(true)
+    })
+  }
+
+  async down() {
+    this.schema.dropTable(this.tableName)
+  }
+}
+```
+
+### AI Service Patterns
+
+```typescript
+export class AIService {
+  // Generate content using PgAI
+  static async generateText(prompt: string, model = 'gemma3:2b-instruct-q4_0') {
+    const result = await Database.rawQuery(`
+      SELECT ai.generate_text(?, ?) as generated_text
+    `, [model, prompt])
+    
+    return result.rows[0].generated_text
+  }
+
+  // Create embeddings
+  static async createEmbedding(text: string, model = 'gemma3:2b-instruct-q4_0') {
+    const result = await Database.rawQuery(`
+      SELECT ai.embed(?, ?) as embedding
+    `, [model, text])
+    
+    return result.rows[0].embedding
+  }
+
+  // Batch process content with AI
+  static async batchProcess(items: Array<{id: number, content: string}>) {
+    const promises = items.map(async (item) => {
+      const summary = await this.generateText(`Summarize: ${item.content}`)
+      const embedding = await this.createEmbedding(item.content)
+      
+      return {
+        id: item.id,
+        summary,
+        embedding
+      }
+    })
+    
+    return Promise.all(promises)
+  }
+}
+```
+
+## Best Practices
+
+1. **Async Processing**: Use background jobs for AI operations
+2. **Error Handling**: Implement proper error handling for AI calls
+3. **Rate Limiting**: Implement rate limiting for AI API calls
+4. **Caching**: Cache AI results to avoid redundant processing
+5. **Vector Indexes**: Use appropriate vector indexes for similarity search
+6. **Model Management**: Keep AI models updated and monitor performance

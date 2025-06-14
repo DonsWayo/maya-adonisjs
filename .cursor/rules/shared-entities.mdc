@@ -1,0 +1,414 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Shared Entities and Control Plane Data Management
+
+## Core Shared Entities
+
+The main app manages these core entities that are shared across all apps in the ecosystem:
+
+### User Management
+- **Users**: Core user profiles, authentication, basic info
+- **User Preferences**: Settings, notifications, UI preferences  
+- **User Sessions**: Active sessions across all apps
+- **User Tokens**: API tokens, personal access tokens
+
+### Company/Organization Management
+- **Companies**: Organization profiles, settings, branding
+- **Company Members**: User-company relationships, roles
+- **Company Settings**: Billing info, feature flags, configurations
+- **Company Subscriptions**: Pricing plans, usage limits
+
+### Project Management
+- **Projects**: Shared projects across multiple apps
+- **Project Members**: User-project relationships, permissions
+- **Project Settings**: Configurations, integrations, preferences
+
+### Authorization & Access Control
+- **Roles**: System and company-level roles
+- **Permissions**: Granular permission system
+- **API Keys**: Inter-app authentication tokens
+- **Audit Logs**: All system activities and changes
+
+## Entity Design Patterns
+
+### Base Entity Model
+
+All shared entities should extend a base model with common fields:
+
+```typescript
+export default class BaseSharedModel extends BaseModel {
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+
+  // Soft deletes for data integrity
+  @column.dateTime()
+  declare deletedAt: DateTime | null
+
+  // Audit fields
+  @column()
+  declare createdBy: number | null
+
+  @column()
+  declare updatedBy: number | null
+
+  // Serialization for API responses
+  abstract serializeForAPI(): object
+
+  // Permissions check
+  abstract canAccess(user: User, action: string): boolean
+}
+```
+
+### User Entity
+
+```typescript
+export default class User extends BaseSharedModel {
+  @column()
+  declare email: string
+
+  @column()
+  declare name: string
+
+  @column()
+  declare avatar: string | null
+
+  @column()
+  declare isActive: boolean
+
+  @column()
+  declare emailVerifiedAt: DateTime | null
+
+  // Company relationship
+  @belongsTo(() => Company)
+  declare company: BelongsTo<typeof Company>
+
+  @column()
+  declare companyId: number
+
+  // Roles and permissions
+  @manyToMany(() => Role, {
+    pivotTable: 'user_roles'
+  })
+  declare roles: ManyToMany<typeof Role>
+
+  // API serialization
+  serializeForAPI() {
+    return {
+      id: this.id,
+      email: this.email,
+      name: this.name,
+      avatar: this.avatar,
+      isActive: this.isActive,
+      companyId: this.companyId,
+      roles: this.roles?.map(role => role.name) || [],
+      permissions: this.getAllPermissions(),
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt
+    }
+  }
+
+  // Get all permissions across roles
+  getAllPermissions(): string[] {
+    return this.roles?.flatMap(role => role.permissions?.map(p => p.name) || []) || []
+  }
+
+  // Permission check
+  canAccess(user: User, action: string): boolean {
+    if (this.id === user.id) return true
+    return user.hasPermission(`users.${action}`)
+  }
+}
+```
+
+### Company Entity
+
+```typescript
+export default class Company extends BaseSharedModel {
+  @column()
+  declare name: string
+
+  @column()
+  declare slug: string
+
+  @column()
+  declare domain: string | null
+
+  @column()
+  declare logo: string | null
+
+  @column()
+  declare settings: CompanySettings
+
+  @column()
+  declare subscriptionStatus: 'active' | 'canceled' | 'past_due'
+
+  // Relationships
+  @hasMany(() => User)
+  declare users: HasMany<typeof User>
+
+  @hasMany(() => Project)
+  declare projects: HasMany<typeof Project>
+
+  @hasMany(() => CompanySubscription)
+  declare subscriptions: HasMany<typeof CompanySubscription>
+
+  // API serialization
+  serializeForAPI() {
+    return {
+      id: this.id,
+      name: this.name,
+      slug: this.slug,
+      domain: this.domain,
+      logo: this.logo,
+      settings: this.settings,
+      subscriptionStatus: this.subscriptionStatus,
+      userCount: this.users?.length || 0,
+      projectCount: this.projects?.length || 0,
+      createdAt: this.createdAt
+    }
+  }
+
+  // Permission check
+  canAccess(user: User, action: string): boolean {
+    if (user.companyId === this.id) return true
+    return user.hasPermission(`companies.${action}`)
+  }
+}
+```
+
+### Project Entity
+
+```typescript
+export default class Project extends BaseSharedModel {
+  @column()
+  declare name: string
+
+  @column()
+  declare description: string | null
+
+  @column()
+  declare status: 'active' | 'archived' | 'draft'
+
+  @column()
+  declare settings: ProjectSettings
+
+  // Relationships
+  @belongsTo(() => Company)
+  declare company: BelongsTo<typeof Company>
+
+  @column()
+  declare companyId: number
+
+  @belongsTo(() => User)
+  declare owner: BelongsTo<typeof User>
+
+  @column()
+  declare ownerId: number
+
+  @manyToMany(() => User, {
+    pivotTable: 'project_members',
+    pivotColumns: ['role', 'permissions']
+  })
+  declare members: ManyToMany<typeof User>
+
+  // API serialization
+  serializeForAPI() {
+    return {
+      id: this.id,
+      name: this.name,
+      description: this.description,
+      status: this.status,
+      companyId: this.companyId,
+      ownerId: this.ownerId,
+      memberCount: this.members?.length || 0,
+      settings: this.settings,
+      createdAt: this.createdAt
+    }
+  }
+
+  // Permission check
+  canAccess(user: User, action: string): boolean {
+    if (this.ownerId === user.id) return true
+    if (this.members?.find(m => m.id === user.id)) return true
+    return user.hasPermission(`projects.${action}`)
+  }
+}
+```
+
+## API Controller Patterns
+
+### RESTful API Controllers for Shared Entities
+
+```typescript
+export default class Api_UsersController {
+  // Get user by ID (for other apps)
+  async show({ params, auth, response }: HttpContext) {
+    const user = await User.findOrFail(params.id)
+    
+    // Check permissions
+    if (!user.canAccess(auth.user!, 'read')) {
+      return response.forbidden('Access denied')
+    }
+    
+    return response.ok(user.serializeForAPI())
+  }
+
+  // Get users by company (for other apps)
+  async index({ request, auth, response }: HttpContext) {
+    const { companyId, page = 1, limit = 20 } = request.qs()
+    
+    const company = await Company.findOrFail(companyId)
+    if (!company.canAccess(auth.user!, 'read')) {
+      return response.forbidden('Access denied')
+    }
+    
+    const users = await User.query()
+      .where('companyId', companyId)
+      .where('isActive', true)
+      .paginate(page, limit)
+    
+    return response.ok({
+      data: users.map(u => u.serializeForAPI()),
+      meta: users.getMeta()
+    })
+  }
+}
+```
+
+## Service Layer Patterns
+
+### Shared Services for Core Operations
+
+```typescript
+export class UserService {
+  // Create user with proper event emission
+  async createUser(userData: CreateUserData): Promise<User> {
+    const user = await User.create(userData)
+    
+    // Emit event for other apps
+    await Event.emit('user:created', {
+      userId: user.id,
+      companyId: user.companyId,
+      email: user.email,
+      name: user.name
+    })
+    
+    return user
+  }
+
+  // Update user with change tracking
+  async updateUser(userId: number, updateData: UpdateUserData): Promise<User> {
+    const user = await User.findOrFail(userId)
+    const oldData = user.serializeForAPI()
+    
+    user.merge(updateData)
+    await user.save()
+    
+    // Emit event with changes
+    await Event.emit('user:updated', {
+      userId: user.id,
+      oldData,
+      newData: user.serializeForAPI()
+    })
+    
+    return user
+  }
+
+  // Soft delete with cleanup
+  async deleteUser(userId: number): Promise<void> {
+    const user = await User.findOrFail(userId)
+    
+    // Soft delete
+    user.deletedAt = DateTime.now()
+    await user.save()
+    
+    // Emit event for cleanup in other apps
+    await Event.emit('user:deleted', {
+      userId: user.id,
+      companyId: user.companyId
+    })
+  }
+}
+```
+
+## Event System for Inter-App Communication
+
+### Event Definitions
+
+```typescript
+// User events
+export interface UserCreatedEvent {
+  userId: number
+  companyId: number
+  email: string
+  name: string
+}
+
+export interface UserUpdatedEvent {
+  userId: number
+  oldData: object
+  newData: object
+}
+
+export interface UserDeletedEvent {
+  userId: number
+  companyId: number
+}
+
+// Company events
+export interface CompanyCreatedEvent {
+  companyId: number
+  name: string
+  slug: string
+}
+
+// Project events
+export interface ProjectCreatedEvent {
+  projectId: number
+  companyId: number
+  ownerId: number
+  name: string
+}
+```
+
+### Event Publishers
+
+```typescript
+export class EntityEventPublisher {
+  static async publishUserEvent(event: string, data: any) {
+    await Event.emit(`user:${event}`, data)
+    await this.logAuditEvent('user', event, data)
+  }
+
+  static async publishCompanyEvent(event: string, data: any) {
+    await Event.emit(`company:${event}`, data)
+    await this.logAuditEvent('company', event, data)
+  }
+
+  static async publishProjectEvent(event: string, data: any) {
+    await Event.emit(`project:${event}`, data)
+    await this.logAuditEvent('project', event, data)
+  }
+
+  private static async logAuditEvent(entityType: string, action: string, data: any) {
+    await AuditLog.create({
+      entityType,
+      action,
+      entityId: data.id || data.userId || data.companyId,
+      data: JSON.stringify(data),
+      timestamp: DateTime.now()
+    })
+  }
+}
+```
+
+This pattern ensures that the main app serves as the authoritative source for all shared entities while providing clean APIs and events for other apps in the ecosystem.

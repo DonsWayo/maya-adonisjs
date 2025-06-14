@@ -1,0 +1,164 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# AdonisJS Development Patterns
+
+## Controller Patterns
+
+When creating AdonisJS controllers:
+
+- Use dependency injection for services
+- Return Inertia responses for pages: `return inertia.render('Users/Index', { users })`
+- Use proper HTTP status codes
+- Implement proper error handling with try/catch blocks
+- Use Vine for request validation
+- Follow RESTful conventions (index, show, create, store, edit, update, destroy)
+
+```typescript
+export default class UsersController {
+  async index({ inertia }: HttpContext) {
+    const users = await User.all()
+    return inertia.render('Users/Index', { users })
+  }
+
+  async store({ request, response }: HttpContext) {
+    const data = await request.validateUsing(createUserValidator)
+    const user = await User.create(data)
+    return response.redirect().toRoute('users.show', { id: user.id })
+  }
+}
+```
+
+## Model Patterns
+
+- Use Lucid ORM models with proper relationships
+- Define computed properties for derived data
+- Use model hooks for lifecycle events
+- Implement proper timestamps with `useTimestamps`
+- Use `@column` decorator for database columns
+
+```typescript
+export default class User extends BaseModel {
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare email: string
+
+  @column({ serializeAs: null })
+  declare password: string
+
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+
+  @hasMany(() => Company)
+  declare companies: HasMany<typeof Company>
+}
+```
+
+## Service Layer
+
+- Create services for complex business logic
+- Use dependency injection with `@inject` decorator
+- Keep controllers thin, services fat
+- Return structured data objects
+
+## Validation
+
+- Use Vine validators for all input validation
+- Create separate validator files for each entity
+- Use proper TypeScript types for validation schemas
+
+## Import Conventions
+
+Use the path mapping system:
+- `#controllers/*` for controllers
+- `#models/*` for models  
+- `#services/*` for services
+- `#config/*` for configuration
+- `#start/*` for start files
+- `#providers/*` for providers
+
+## Inertia.js Integration
+
+- Always use TypeScript interfaces for page props
+- Use `InferPageProps` type helper for type safety
+- Pass minimal data to avoid over-fetching
+- Use proper page component naming (PascalCase with Page suffix)
+
+## Database
+
+- Use migrations for schema changes
+- Create proper indexes for performance
+- Use factories for testing data
+- Implement proper relationships between models
+
+## Control Plane Patterns (Main App)
+
+### API Design for Inter-App Communication
+
+Main app should expose clean APIs for other apps:
+
+```typescript
+// API routes for other apps to consume
+Route.group(() => {
+  Route.resource('users', 'Api/UsersController').only(['show', 'index'])
+  Route.resource('companies', 'Api/CompaniesController').only(['show', 'index'])
+  Route.get('/companies/:id/users', 'Api/CompaniesController.users')
+  Route.post('/auth/validate-token', 'Api/AuthController.validateToken')
+}).prefix('/api/v1').middleware(['apiAuth'])
+```
+
+### Shared Entity Models
+
+Core entities should be designed for sharing:
+
+```typescript
+export default class User extends BaseModel {
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare email: string
+
+  @belongsTo(() => Company)
+  declare company: BelongsTo<typeof Company>
+
+  // API serialization for other apps
+  serialize(fields?: object) {
+    return {
+      id: this.id,
+      email: this.email,
+      companyId: this.companyId,
+      roles: this.roles,
+      permissions: this.permissions
+    }
+  }
+}
+```
+
+### Event Publishing
+
+Main app should publish events for other apps:
+
+```typescript
+export default class UsersController {
+  async store({ request, response }: HttpContext) {
+    const user = await User.create(request.validated())
+    
+    // Publish event for other apps
+    await Event.emit('user:created', {
+      userId: user.id,
+      companyId: user.companyId,
+      email: user.email
+    })
+    
+    return response.created(user)
+  }
+}
+```

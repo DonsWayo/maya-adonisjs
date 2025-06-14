@@ -1,0 +1,153 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# UI Component Library Patterns
+
+## Shadcn/UI Integration
+
+This project uses Shadcn/UI with the New York style configuration:
+
+- **Style**: New York (clean, modern design)
+- **Base Color**: Neutral 
+- **CSS Variables**: Enabled for theming
+- **Icon Library**: Lucide React
+- **RSC**: Enabled for React Server Components
+
+## Component Structure
+
+All UI components should follow this structure:
+
+```typescript
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@workspace/ui/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants }
+```
+
+## Component Guidelines
+
+1. **Use Class Variance Authority (CVA)** for variant management
+2. **Use Radix UI Primitives** as the foundation for complex components
+3. **Implement forwardRef** for all components that accept refs
+4. **Use the `cn` utility** for className merging
+5. **Export both component and variants** for flexibility
+6. **Use TypeScript interfaces** for all prop definitions
+7. **Support `asChild` pattern** where appropriate using `@radix-ui/react-slot`
+
+## Import Aliases
+
+Use these import aliases consistently:
+- `@workspace/ui/components` for UI components
+- `@workspace/ui/lib/utils` for utility functions
+- `@workspace/ui/hooks` for custom hooks
+- `@workspace/ui/lib` for libraries and configurations
+
+## Styling Conventions
+
+- Use TailwindCSS v4 classes
+- Follow the design system color tokens (primary, secondary, muted, etc.)
+- Implement proper focus states with `focus-visible`
+- Use consistent spacing with Tailwind spacing scale
+- Implement proper hover and active states
+
+## Component Export Pattern
+
+```typescript
+// In components/ui/button.tsx
+export { Button, buttonVariants } from "./button"
+
+// In components/index.ts  
+export * from "./ui/button"
+export * from "./ui/input"
+export * from "./ui/card"
+```
+
+## Custom Hook Patterns
+
+Create reusable hooks in the hooks directory:
+
+```typescript
+import { useState, useEffect } from 'react'
+
+export function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key)
+      return item ? JSON.parse(item) : initialValue
+    } catch (error) {
+      return initialValue
+    }
+  })
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value
+      setStoredValue(valueToStore)
+      window.localStorage.setItem(key, JSON.stringify(valueToStore))
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  return [storedValue, setValue] as const
+}
+```
+
+## Theme Integration
+
+- Use CSS custom properties for theming
+- Support both light and dark modes
+- Use semantic color tokens (primary, secondary, accent, etc.)
+- Ensure proper contrast ratios for accessibility
+
+## Testing Components
+
+- Write unit tests for all components
+- Test all variants and states
+- Test accessibility features
+- Use React Testing Library for testing
