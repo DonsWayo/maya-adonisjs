@@ -1,0 +1,19 @@
+# Hetzner Cloud API Token (required)
+# hcloud_token = "your_hcloud_api_token"
+
+# Cluster name (optional, defaults to "maya-k8s")
+# cluster_name = "maya-k8s"
+
+# Hetzner Cloud location (optional, defaults to "fsn1")
+# location = "fsn1"
+
+# ARM64 server types (optional)
+# control_plane_type = "cax21"  # 4 vCPUs, 8 GB RAM
+# worker_type = "cax11"         # 2 vCPUs, 4 GB RAM
+
+# Node counts (optional)
+# control_plane_count = 3
+# worker_count = 3
+
+# SSH keys to add to nodes (optional)
+# ssh_keys = ["your-ssh-key-name-or-id"]
