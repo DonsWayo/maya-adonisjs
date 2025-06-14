@@ -17,3 +17,15 @@
 
 # SSH keys to add to nodes (optional)
 # ssh_keys = ["your-ssh-key-name-or-id"]
+
+# Hetzner DNS and cert-manager configuration
+# hetzner_dns_api_token = "your-hetzner-dns-api-token"  # Required for DNS01 challenge
+# email_address = "admin@hakicloud.com"                 # For Let's Encrypt notifications
+# zone_name = "hakicloud.com"                          # Your DNS zone
+# cluster_issuer_name = "letsencrypt-hetzner-dns"       # Name for the ClusterIssuer
+
+# Echo server configuration
+# echo_server_domain = "echo.hakicloud.com"             # Domain for the echo server
+# echo_server_namespace = "default"                     # Kubernetes namespace
+# echo_server_image = "ealen/echo-server:latest"        # Docker image
+# echo_server_replicas = 2                             # Number of replicas

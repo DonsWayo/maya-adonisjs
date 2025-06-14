@@ -6,10 +6,48 @@ terraform {
       source  = "hetznercloud/hcloud"
       version = ">= 1.5.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.25"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.12"
+    }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = "~> 1.19.0"
+    }
+    hetznerdns = {
+      source  = "timohirt/hetznerdns"
+      version = "~> 2.2.0"
+    }
+    dns = {
+      source  = "hashicorp/dns"
+      version = "~> 3.3.0"
+    }
   }
 }
 
 provider "hcloud" {
   token = var.hcloud_token
+}
+
+provider "kubernetes" {
+  config_path = "${path.module}/kubeconfig"
+}
+
+provider "helm" {
+  kubernetes {
+    config_path = "${path.module}/kubeconfig"
+  }
+}
+
+provider "kubectl" {
+  config_path = "${path.module}/kubeconfig"
+}
+
+provider "hetznerdns" {
+  apitoken = var.hetzner_dns_api_token
 }
 
