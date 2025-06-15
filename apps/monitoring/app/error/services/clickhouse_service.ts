@@ -32,7 +32,7 @@ export class ClickHouseService {
       // Insert the error event into ClickHouse
       await clickhouse.insert({
         table: 'error_events',
-        values: [eventData]
+        values: eventData  // Remove array wrapper, adonis-clickhouse handles it
       })
     } catch (error) {
       console.error('Failed to store error event in ClickHouse:', error)

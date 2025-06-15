@@ -18,10 +18,21 @@ export default class ErrorEventsController {
     const projectId = params.projectId
     
     // Verify the project exists and authentication
-    const project = await Project.query()
-      .where('id', projectId)
-      .orWhere('public_key', projectId) // projectId could be either ID or public key
-      .first()
+    let project: Project | null = null
+    
+    // Check if projectId is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (uuidRegex.test(projectId)) {
+      project = await Project.query()
+        .where('id', projectId)
+        .orWhere('public_key', projectId)
+        .first()
+    } else {
+      // If not a UUID, only search by public_key
+      project = await Project.query()
+        .where('public_key', projectId)
+        .first()
+    }
     
     if (!project) {
       return response.unauthorized({ error: 'Invalid project ID or authentication' })
