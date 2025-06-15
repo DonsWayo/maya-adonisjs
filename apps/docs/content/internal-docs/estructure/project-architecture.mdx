@@ -1,0 +1,215 @@
+---
+title: Project Architecture
+description: Overview of the Maya AdonisJS monorepo structure and multi-app ecosystem design
+---
+
+# Maya AdonisJS Project Architecture
+
+This is a sophisticated monorepo built with AdonisJS 6, featuring multiple applications and shared packages designed for scalability and maintainability.
+
+## Project Structure
+
+```
+maya-adonisjs/
+├── apps/
+│   ├── main/           # Central Control Plane
+│   ├── monitoring/     # Error monitoring and analytics
+│   └── docs/          # Documentation site (Next.js)
+├── packages/
+│   ├── ui/            # Shared UI component library
+│   ├── eslint-config/ # Shared ESLint configuration
+│   └── typescript-config/ # Shared TypeScript configuration
+└── config/            # Shared configuration files
+```
+
+## Multi-App Architecture Vision
+
+### Central Control Plane (Main App)
+
+The `main` app serves as the **central control plane** for the entire ecosystem:
+
+- **Core Entity Management**: Users, Companies, Projects, Teams, Permissions
+- **Authentication & Authorization**: Logto integration, role-based access control
+- **Shared Services**: Email, notifications, file storage, audit logs
+- **API Gateway**: Provides APIs for other apps to consume shared data
+- **Admin Interface**: Central management UI for system administrators
+
+### Focused Applications
+
+Other apps are designed to be lightweight and focused:
+
+- Each app handles its specific domain (monitoring, billing, CRM, etc.)
+- Apps consume shared entities via APIs from main
+- Apps can have their own specialized databases/services
+- All apps share the same authentication system managed by main
+
+## Key Technologies
+
+| Technology | Purpose | Version |
+|------------|---------|---------|
+| **AdonisJS** | Backend Framework | 6.x |
+| **React** | Frontend Framework | 19.x |
+| **Inertia.js** | Full-stack Framework | Latest |
+| **TailwindCSS** | Styling | v4 |
+| **PostgreSQL** | Primary Database | Latest |
+| **TimescaleDB** | Time-series Extension | Latest |
+| **PgAI** | AI Database Extension | Latest |
+| **ClickHouse** | Analytics Database | Latest |
+| **Logto** | Authentication | Latest |
+| **Docker** | Containerization | Latest |
+| **Turbo** | Build System | Latest |
+| **pnpm** | Package Manager | Latest |
+
+## Architecture Principles
+
+### 1. Domain-Driven Design
+
+Each app uses domain modules for clean separation:
+
+```
+app/
+├── auth/           # Authentication domain
+├── users/         # User management domain
+├── companies/     # Company management domain
+├── projects/      # Project management domain
+└── analytics/     # Analytics domain
+```
+
+### 2. Shared Components
+
+UI components are centralized in the `@workspace/ui` package:
+
+- Consistent design system across all apps
+- Shared Shadcn/UI components with New York style
+- Reusable hooks and utilities
+- Type-safe component props
+
+### 3. Type Safety
+
+Full TypeScript coverage across all applications:
+
+- Strict TypeScript configuration
+- Shared type definitions
+- InferPageProps for Inertia.js pages
+- API contract types
+
+### 4. Modern Stack
+
+Uses latest versions and features:
+
+- React 19 with Concurrent Features
+- AdonisJS 6 with ESM support
+- TailwindCSS v4 with CSS Layer API
+- Modern build tools and optimizations
+
+### 5. Monorepo Management
+
+Efficient package management and build system:
+
+- pnpm workspaces for dependency management
+- Turbo for build orchestration and caching
+- Shared configurations across packages
+- Incremental builds and testing
+
+## Import Patterns
+
+### Path Mapping
+
+Use `#` prefix for internal imports in AdonisJS apps:
+
+```typescript
+import UserController from '#controllers/users_controller'
+import User from '#models/user'
+import UserService from '#services/user_service'
+```
+
+### Workspace References
+
+Use workspace references for shared packages:
+
+```typescript
+import { Button } from '@workspace/ui/components/button'
+import { cn } from '@workspace/ui/lib/utils'
+```
+
+### React Router
+
+Never use `react-router-dom` - use `react-router` instead:
+
+```typescript
+// ✅ Correct
+import { useParams, useLoaderData } from "react-router"
+
+// ❌ Incorrect
+import { useParams, useLoaderData } from "react-router-dom"
+```
+
+## File Naming Conventions
+
+| Type | Convention | Example |
+|------|------------|---------|
+| **Controllers** | PascalCase + Controller | `UsersController` |
+| **Models** | PascalCase singular | `User`, `Company` |
+| **Services** | PascalCase + Service | `UserService` |
+| **Components** | PascalCase | `UserProfile` |
+| **Pages** | PascalCase + Page | `UsersIndexPage` |
+| **Types** | PascalCase | `UserData` |
+
+## Docker Integration
+
+### Multi-Stage Builds
+
+Each app uses multi-stage Dockerfiles:
+
+- **Development stage**: Hot reload, debugging tools
+- **Production stage**: Optimized builds, minimal dependencies
+
+### Service Communication
+
+Services communicate using Docker network hostnames:
+
+- Database: `pgsql:5432`
+- Redis: `redis:6379`
+- ClickHouse: `clickhouse:8123`
+- Authentication: `logto:3001`
+
+### Traefik Routing
+
+All services are accessible via `.localhost` domains:
+
+- Main app: `main.localhost`
+- Monitoring: `monitoring.localhost`
+- Docs: `docs.localhost`
+- Authentication: `logto.localhost`
+
+## Scalability Considerations
+
+### Horizontal Scaling
+
+The architecture supports adding new apps easily:
+
+1. Create new app directory in `apps/`
+2. Configure authentication with main app
+3. Define API contracts for shared data
+4. Add to Docker Compose and Traefik
+5. Update build pipeline
+
+### Data Scaling
+
+- PostgreSQL with TimescaleDB for time-series data
+- ClickHouse for analytics and reporting
+- Redis for caching and sessions
+- AI capabilities with PgAI and Ollama
+
+### Build Scaling
+
+- Turbo caching for fast builds
+- Incremental builds based on changes
+- Parallel execution of independent tasks
+- Remote caching support for teams
+
+## Next Steps
+
+- Review [Multi-App Ecosystem](/internal-docs/multi-app-ecosystem) for app communication patterns
+- Study [Shared Entities](/internal-docs/shared-entities) for data management
+- Explore [Development Patterns](/internal-docs/adonisjs-patterns) for best practices 

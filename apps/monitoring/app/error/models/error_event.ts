@@ -67,36 +67,6 @@ export interface ErrorEvent {
   has_been_processed?: number
 }
 
-/**
- * ErrorEvent class with static methods for database operations
- */
-export default class ErrorEventModel {
-  /**
-   * Table name in ClickHouse
-   */
-  static table = 'error_events'
-  
-  /**
-   * Find an error event by ID
-   */
-  static async find(id: string): Promise<ErrorEvent | null> {
-    // This will be implemented in the ClickHouseService
-    return null
-  }
-  
-  /**
-   * Create a query builder
-   */
-  static query() {
-    // This will be implemented in the ClickHouseService
-    return {
-      where: () => ErrorEventModel.query(),
-      whereRaw: () => ErrorEventModel.query(),
-      orWhereRaw: () => ErrorEventModel.query(),
-      limit: () => ErrorEventModel.query(),
-      offset: () => ErrorEventModel.query(),
-      orderBy: () => ErrorEventModel.query(),
-      exec: async () => [] as ErrorEvent[],
-    }
-  }
-}
+// Note: The monitoring app uses ClickHouseService directly for all database operations
+// instead of following the traditional model pattern. This is because ClickHouse
+// doesn't work well with ORMs and direct SQL queries are more efficient.

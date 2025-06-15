@@ -26,6 +26,11 @@ terraform {
       source  = "hashicorp/dns"
       version = "~> 3.3.0"
     }
+    # AWS provider removed, using MinIO instead
+    minio = {
+      source  = "aminueza/minio"
+      version = "3.3.0"
+    }
   }
 }
 
@@ -51,3 +56,12 @@ provider "hetznerdns" {
   apitoken = var.hetzner_dns_api_token
 }
 
+# AWS provider removed, using MinIO instead
+
+provider "minio" {
+  minio_server   = "fsn1.your-objectstorage.com"
+  minio_user     = var.hetzner_s3_access_key
+  minio_password = var.hetzner_s3_secret_key
+  minio_region   = "fsn1"
+  minio_ssl      = true
+}

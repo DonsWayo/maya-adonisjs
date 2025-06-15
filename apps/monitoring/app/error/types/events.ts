@@ -1,4 +1,4 @@
-import ErrorEvent from "#error/models/error_event"
+import type { ErrorEvent } from "#error/models/error_event"
 
 declare module '@adonisjs/core/types' {
   interface EventsList {

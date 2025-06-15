@@ -53,7 +53,10 @@ export const storeErrorEventValidator = vine.compile(
     breadcrumbs: vine.array(vine.object({})).optional(),
     contexts: vine.object({}).optional(),
     request: vine.object({}).optional(),
-    sdk: vine.object({}).optional(),
+    sdk: vine.object({
+      name: vine.string().optional(),
+      version: vine.string().optional(),
+    }).optional(),
     exception: vine.object({
       values: vine.array(
         vine.object({

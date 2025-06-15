@@ -20,7 +20,7 @@ export default class ErrorEventsController {
     // Verify the project exists and authentication
     const project = await Project.query()
       .where('id', projectId)
-      .orWhere('public_key', params.publicKey)
+      .orWhere('public_key', projectId) // projectId could be either ID or public key
       .first()
     
     if (!project) {

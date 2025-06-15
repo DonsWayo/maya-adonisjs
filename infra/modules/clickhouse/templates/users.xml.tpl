@@ -1,0 +1,55 @@
+<clickhouse>
+    <profiles>
+        <default>
+            <max_memory_usage>${max_memory_usage}</max_memory_usage>
+            <max_memory_usage_for_user>0</max_memory_usage_for_user>
+            <max_bytes_before_external_group_by>0</max_bytes_before_external_group_by>
+            <max_bytes_before_external_sort>0</max_bytes_before_external_sort>
+            <load_balancing>random</load_balancing>
+            <log_queries>1</log_queries>
+            <max_execution_time>3600</max_execution_time>
+            <distributed_product_mode>global</distributed_product_mode>
+        </default>
+
+        <readonly>
+            <readonly>1</readonly>
+        </readonly>
+
+        <highload>
+            <max_memory_usage>${max_memory_usage}</max_memory_usage>
+            <max_memory_usage_for_user>0</max_memory_usage_for_user>
+            <max_concurrent_queries_for_user>0</max_concurrent_queries_for_user>
+            <max_execution_time>7200</max_execution_time>
+            <max_threads>64</max_threads>
+            <priority>1</priority>
+            <log_queries>1</log_queries>
+            <background_pool_size>32</background_pool_size>
+            <background_schedule_pool_size>32</background_schedule_pool_size>
+        </highload>
+    </profiles>
+
+    <users>
+        <default>
+            <password></password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+            <access_management>1</access_management>
+        </default>
+    </users>
+
+    <quotas>
+        <default>
+            <interval>
+                <duration>3600</duration>
+                <queries>0</queries>
+                <errors>0</errors>
+                <result_rows>0</result_rows>
+                <read_rows>0</read_rows>
+                <execution_time>0</execution_time>
+            </interval>
+        </default>
+    </quotas>
+</clickhouse>

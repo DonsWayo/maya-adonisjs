@@ -29,3 +29,44 @@
 # echo_server_namespace = "default"                     # Kubernetes namespace
 # echo_server_image = "ealen/echo-server:latest"        # Docker image
 # echo_server_replicas = 2                             # Number of replicas
+
+# PostgreSQL configuration
+# postgresql_namespace = "postgresql"                   # Kubernetes namespace for PostgreSQL
+# postgresql_cluster_name = "postgres-cluster"          # Name of the PostgreSQL cluster
+# postgresql_instance_count = 3                        # Number of PostgreSQL instances
+# postgresql_storage_size = "10Gi"                     # Size of the PostgreSQL storage
+# postgresql_storage_class = "local-path"              # Storage class for PostgreSQL volumes
+# postgresql_image = "ghcr.io/cloudnative-pg/postgresql:17.5"  # PostgreSQL container image
+# postgresql_create_credentials = true                 # Whether to create a Kubernetes secret with credentials
+# postgresql_username = "postgres"                      # Database username
+# postgresql_password = "your-secure-password"          # Database password (required if create_credentials is true)
+# postgresql_database_name = "postgres"                 # Database name
+
+# Hetzner S3 Object Storage for PostgreSQL backups
+# hetzner_s3_access_key = "your-hetzner-s3-access-key"  # Required for S3 access
+# hetzner_s3_secret_key = "your-hetzner-s3-secret-key"  # Required for S3 access
+# hetzner_s3_bucket_name_postgres = "postgresql-backups"         # S3 bucket name for backups
+# hetzner_s3_region = "eu-central-1"                    # Region for Hetzner Object Storage
+# hetzner_s3_endpoint_url = "https://s3.eu-central-1.hetzner.cloud"  # Hetzner S3 endpoint URL
+
+# ClickHouse configuration
+# clickhouse_namespace = "clickhouse"                  # Kubernetes namespace
+# clickhouse_cluster_name = "clickhouse-cluster"       # Name of the ClickHouse cluster
+# clickhouse_shards = 3                               # Number of shards (for horizontal scaling)
+# clickhouse_replicas_per_shard = 2                   # Number of replicas per shard (for HA)
+# clickhouse_storage_size = "1Ti"                     # Storage size per instance (1TB default)
+# clickhouse_storage_class = "hcloud-volumes"         # Storage class for volumes
+# clickhouse_cpu_request = "4"                        # CPU request per instance
+# clickhouse_cpu_limit = "8"                          # CPU limit per instance
+# clickhouse_memory_request = "16Gi"                  # Memory request per instance
+# clickhouse_memory_limit = "32Gi"                    # Memory limit per instance
+# clickhouse_zookeeper_replicas = 3                   # Number of ZooKeeper nodes
+# clickhouse_enable_tls = true                        # Enable TLS for connections
+# clickhouse_s3_backup_enabled = true                 # Enable S3 backups
+# clickhouse_s3_bucket_name = "clickhouse-backups"    # S3 bucket for ClickHouse backups
+# clickhouse_enable_monitoring = true                 # Enable Prometheus monitoring
+# clickhouse_max_connections = 10000                  # Max concurrent connections
+# clickhouse_max_concurrent_queries = 1000            # Max concurrent queries
+# clickhouse_max_memory_usage = "20000000000"         # Max memory for queries (20GB)
+# clickhouse_merge_tree_parts_to_delay_insert = 300  # Threshold to delay inserts
+# clickhouse_merge_tree_parts_to_throw_insert = 600  # Threshold to reject inserts

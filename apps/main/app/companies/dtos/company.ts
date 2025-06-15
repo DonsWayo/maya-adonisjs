@@ -1,7 +1,6 @@
 import { BaseModelDto } from '@adocasts.com/dto/base'
 
 import Company from '#companies/models/company'
-import UserDto from '#users/dtos/user'
 
 export default class CompanyDto extends BaseModelDto {
   declare id: string

@@ -14,9 +14,7 @@ import LogtoPermissionMiddleware from '#auth/logto/middleware/permission_middlew
 
 // Export middleware for use in routes
 export const logtoJwt = LogtoJwtMiddleware
-export const logtoPermission = (scopes: string) => {
-  return new LogtoPermissionMiddleware(scopes.split(','))
-}
+export const logtoPermission = LogtoPermissionMiddleware
 
 // The following is for reference only
 /*
@@ -30,3 +28,4 @@ export const logtoPermission = (scopes: string) => {
     middleware: () => import('#auth/logto/middleware/permission_middleware'),
   },
 ])
+*/

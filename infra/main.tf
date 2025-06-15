@@ -13,6 +13,8 @@ module "kubernetes" {
   cert_manager_enabled  = true
   ingress_nginx_enabled = true
 
+  
+
   # ARM64 architecture nodes
   control_plane_nodepools = [
     { 
@@ -25,7 +27,7 @@ module "kubernetes" {
   
   worker_nodepools = [
     { 
-      name     = "worker", 
+      name     = "worker-cax31", 
       type     = var.worker_type, 
       location = var.location, 
       count    = var.worker_count 
@@ -39,7 +41,7 @@ module "kubernetes" {
       type     = var.worker_type
       location = var.location
       min      = 0
-      max      = 3
+      max      = 6
       labels   = { "autoscaler-node" = "true" }
     }
   ]

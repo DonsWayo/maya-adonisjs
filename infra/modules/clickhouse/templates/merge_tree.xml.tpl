@@ -1,0 +1,19 @@
+<clickhouse>
+    <merge_tree>
+        <parts_to_delay_insert>${parts_to_delay_insert}</parts_to_delay_insert>
+        <parts_to_throw_insert>${parts_to_throw_insert}</parts_to_throw_insert>
+        <max_delay_to_insert>30</max_delay_to_insert>
+        <max_parts_in_total>100000</max_parts_in_total>
+        <replicated_deduplication_window>1000</replicated_deduplication_window>
+        <replicated_deduplication_window_seconds>604800</replicated_deduplication_window_seconds>
+        <max_suspicious_broken_parts>100</max_suspicious_broken_parts>
+        <max_bytes_to_merge_at_max_space_in_pool>161061273600</max_bytes_to_merge_at_max_space_in_pool>
+        <max_bytes_to_merge_at_min_space_in_pool>1048576</max_bytes_to_merge_at_min_space_in_pool>
+        <merge_max_block_size>8192</merge_max_block_size>
+        <max_partitions_to_read>-1</max_partitions_to_read>
+        <min_bytes_for_wide_part>10485760</min_bytes_for_wide_part>
+        <min_rows_for_wide_part>0</min_rows_for_wide_part>
+        <zookeeper_session_expiration_check_period>60</zookeeper_session_expiration_check_period>
+        <enable_mixed_granularity_parts>1</enable_mixed_granularity_parts>
+    </merge_tree>
+</clickhouse>
