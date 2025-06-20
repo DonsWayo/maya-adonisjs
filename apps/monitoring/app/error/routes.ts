@@ -14,6 +14,7 @@ const ErrorEventsController = () => import('#error/controllers/error_events_cont
 
 // UI Routes (require authentication)
 
+
 // Projects routes
 router
   .resource('/projects', ProjectsController)

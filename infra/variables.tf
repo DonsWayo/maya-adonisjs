@@ -31,13 +31,13 @@ variable "worker_type" {
 variable "control_plane_count" {
   description = "Number of control plane nodes"
   type        = number
-  default     = 3  # For high availability
+  default     = 1  # For high availability
 }
 
 variable "worker_count" {
   description = "Number of worker nodes"
   type        = number
-  default     = 3  # For high availability
+  default     = 1  # For high availability
 }
 
 variable "ssh_keys" {

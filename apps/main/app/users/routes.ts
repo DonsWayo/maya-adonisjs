@@ -53,7 +53,7 @@ router
   .group(() => {
     // User endpoints
     router.get('/users', [UsersController, 'indexApi'])
-    router.post('/users', [UsersController, 'storeApi'])
+    //router.post('/users', [UsersController, 'storeApi'])
     // Define the more specific route first
     router.get('/users/external/:externalId', [UsersController, 'showByExternalId'])
     // Then the generic routes

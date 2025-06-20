@@ -275,7 +275,7 @@ services:
       clickhouse:
         condition: service_started
     env_file:
-      - ./apps/monitoring/.env.docker
+      - ./apps/monitoring/.env
     extra_hosts:
       - "logto.localhost:host-gateway"
       - "admin.logto.localhost:host-gateway"
@@ -309,7 +309,7 @@ services:
       clickhouse:
         condition: service_started
     env_file:
-      - ./apps/monitoring/.env.docker
+      - ./apps/monitoring/.env
     networks:
       - maya_network
       

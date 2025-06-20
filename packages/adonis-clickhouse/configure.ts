@@ -1,5 +1,5 @@
 import type Configure from '@adonisjs/core/commands/configure'
-import pkg from './package.json'
+import pkg from './package.json' with { type: 'json' }
 import { stubsRoot } from './stubs/index.js'
 const packageName = pkg.name
 /**
