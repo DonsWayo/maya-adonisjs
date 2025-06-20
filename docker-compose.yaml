@@ -261,6 +261,7 @@ services:
     container_name: maya_monitoring
     volumes:
       - ./apps/monitoring:/app/apps/monitoring
+      - ./packages:/app/packages
       - /app/apps/monitoring/node_modules
     # Port is only exposed for direct access if needed
     # Traefik will handle routing through labels
@@ -274,7 +275,7 @@ services:
       clickhouse:
         condition: service_started
     env_file:
-      - ./apps/monitoring/.env
+      - ./apps/monitoring/.env.docker
     extra_hosts:
       - "logto.localhost:host-gateway"
       - "admin.logto.localhost:host-gateway"
@@ -286,6 +287,32 @@ services:
       - "traefik.http.services.monitoring.loadbalancer.server.port=3334"
     networks:
       - maya_network
+  
+  # Monitoring Queue Worker
+  monitoring-worker:
+    build:
+      context: .
+      dockerfile: ./apps/monitoring/Dockerfile
+      target: development
+    container_name: 'maya_monitoring_worker'
+    restart: unless-stopped
+    volumes:
+      - ./apps/monitoring:/app/apps/monitoring
+      - ./packages:/app/packages
+      - /app/apps/monitoring/node_modules
+    command: ["node", "ace", "queue:work"]
+    depends_on:
+      pgsql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_started
+    env_file:
+      - ./apps/monitoring/.env.docker
+    networks:
+      - maya_network
+      
   # Documentation app (Next.js)
   docs:
     build:

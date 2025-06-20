@@ -17,7 +17,7 @@ export default defineConfig({
     () => import('@adonisjs/mail/commands'),
     () => import('@adonisjs/bouncer/commands'),
     () => import('@jrmc/adonis-attachment/commands'),
-    // Commands in the commands directory are automatically registered
+    () => import('@nemoventures/adonis-jobs/commands'),
   ],
 
   /*
@@ -51,7 +51,8 @@ export default defineConfig({
     () => import('@adonisjs/ally/ally_provider'),
     () => import('@jrmc/adonis-attachment/attachment_provider'),
     () => import('@adonisjs/drive/drive_provider'),
-    () => import('adonis-clickhouse/providers/clickhouse_provider')
+    () => import('adonis-clickhouse/providers/clickhouse_provider'),
+    () => import('@nemoventures/adonis-jobs/queue_provider'),
   ],
 
   /*
@@ -64,7 +65,6 @@ export default defineConfig({
   */
   preloads: [
     () => import('#start/kernel'),
-
 
     //auth
     () => import('#auth/start/view'),
@@ -91,6 +91,13 @@ export default defineConfig({
   */
   tests: {
     suites: [
+      {
+        files: [
+          'tests/browser/**/*.spec(.ts|.js)'
+        ],
+        name: 'browser',
+        timeout: 300000
+      },
       {
         files: ['tests/unit/**/*.spec(.ts|.js)'],
         name: 'unit',
@@ -128,5 +135,8 @@ export default defineConfig({
   assetsBundler: false,
   hooks: {
     onBuildStarting: [() => import('@adonisjs/vite/build_hook')],
+  },
+  directories: {
+    jobs: 'app/jobs',
   },
 })

@@ -11,7 +11,7 @@ export const afterAuthLogoutRedirectRoute = '/login'
 
 /**
  * Define auth configuration
- * 
+ *
  * We're using the session guard with a custom user provider that fetches
  * user data from the main app instead of a local database model.
  * This approach avoids duplicating user data and keeps the main app

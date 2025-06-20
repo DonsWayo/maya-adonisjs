@@ -1,5 +1,5 @@
 import React from 'react'
-import { 
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -7,18 +7,14 @@ import {
 } from '@workspace/ui/components/accordion'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@workspace/ui/components/card'
-import { 
-  ChevronDown, 
-  Code, 
-  Copy, 
-  AlertCircle, 
-  Server, 
-  Globe, 
-  User, 
-  Clock, 
-  Tag
-} from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card'
+import { ChevronDown, Code, Copy, AlertCircle, Server, Globe, User, Clock, Tag } from 'lucide-react'
 import { DateTime } from 'luxon'
 
 interface ErrorDetailsProps {
@@ -45,8 +41,10 @@ interface ErrorDetailsProps {
 
 export function ErrorDetails({ error }: ErrorDetailsProps) {
   const formattedTime = DateTime.fromISO(error.timestamp).toFormat('LLL dd, yyyy HH:mm:ss')
-  const firstSeen = error.first_seen ? DateTime.fromISO(error.first_seen).toFormat('LLL dd, yyyy HH:mm:ss') : null
-  
+  const firstSeen = error.first_seen
+    ? DateTime.fromISO(error.first_seen).toFormat('LLL dd, yyyy HH:mm:ss')
+    : null
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
   }
@@ -58,21 +56,22 @@ export function ErrorDetails({ error }: ErrorDetailsProps) {
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-xl font-bold">{error.type}</CardTitle>
-              <CardDescription className="mt-1">
-                {formattedTime}
-              </CardDescription>
+              <CardDescription className="mt-1">{formattedTime}</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge 
-                variant={error.level === 'error' ? 'destructive' : 
-                       error.level === 'warning' ? 'warning' : 'default'}
+              <Badge
+                variant={
+                  error.level === 'error'
+                    ? 'destructive'
+                    : error.level === 'warning'
+                      ? 'warning'
+                      : 'default'
+                }
               >
                 {error.level}
               </Badge>
               <Badge variant="outline">{error.environment}</Badge>
-              {error.handled === false && (
-                <Badge variant="destructive">Unhandled</Badge>
-              )}
+              {error.handled === false && <Badge variant="destructive">Unhandled</Badge>}
             </div>
           </div>
         </CardHeader>
@@ -80,9 +79,9 @@ export function ErrorDetails({ error }: ErrorDetailsProps) {
           <div className="p-4 bg-muted rounded-md mb-4">
             <div className="flex justify-between">
               <p className="font-mono text-sm break-words">{error.message}</p>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => copyToClipboard(error.message)}
                 className="h-8 w-8"
               >
@@ -90,7 +89,7 @@ export function ErrorDetails({ error }: ErrorDetailsProps) {
               </Button>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -117,8 +116,8 @@ export function ErrorDetails({ error }: ErrorDetailsProps) {
             </AccordionTrigger>
             <AccordionContent>
               <div className="p-4 bg-muted rounded-md font-mono text-sm whitespace-pre-wrap overflow-x-auto">
-                {typeof error.exception === 'string' 
-                  ? error.exception 
+                {typeof error.exception === 'string'
+                  ? error.exception
                   : JSON.stringify(error.exception, null, 2)}
               </div>
             </AccordionContent>
@@ -135,8 +134,8 @@ export function ErrorDetails({ error }: ErrorDetailsProps) {
             </AccordionTrigger>
             <AccordionContent>
               <div className="p-4 bg-muted rounded-md font-mono text-sm whitespace-pre-wrap overflow-x-auto">
-                {typeof error.request === 'string' 
-                  ? error.request 
+                {typeof error.request === 'string'
+                  ? error.request
                   : JSON.stringify(error.request, null, 2)}
               </div>
             </AccordionContent>
@@ -153,9 +152,7 @@ export function ErrorDetails({ error }: ErrorDetailsProps) {
             </AccordionTrigger>
             <AccordionContent>
               <div className="p-4 bg-muted rounded-md font-mono text-sm whitespace-pre-wrap overflow-x-auto">
-                {typeof error.user === 'string' 
-                  ? error.user 
-                  : JSON.stringify(error.user, null, 2)}
+                {typeof error.user === 'string' ? error.user : JSON.stringify(error.user, null, 2)}
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -171,8 +168,8 @@ export function ErrorDetails({ error }: ErrorDetailsProps) {
             </AccordionTrigger>
             <AccordionContent>
               <div className="p-4 bg-muted rounded-md font-mono text-sm whitespace-pre-wrap overflow-x-auto">
-                {typeof error.contexts === 'string' 
-                  ? error.contexts 
+                {typeof error.contexts === 'string'
+                  ? error.contexts
                   : JSON.stringify(error.contexts, null, 2)}
               </div>
             </AccordionContent>
@@ -217,7 +214,9 @@ export function ErrorDetails({ error }: ErrorDetailsProps) {
                         {breadcrumb.level || 'info'}
                       </Badge>
                     </div>
-                    <p className="text-sm">{breadcrumb.message || JSON.stringify(breadcrumb.data)}</p>
+                    <p className="text-sm">
+                      {breadcrumb.message || JSON.stringify(breadcrumb.data)}
+                    </p>
                     {breadcrumb.timestamp && (
                       <p className="text-xs text-muted-foreground mt-1">
                         {DateTime.fromISO(breadcrumb.timestamp).toFormat('HH:mm:ss')}

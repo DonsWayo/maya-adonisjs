@@ -14,7 +14,7 @@ type MainAppUser = {
 
 /**
  * A user provider that fetches users from the main app
- * 
+ *
  * This provider implements the SessionUserProviderContract interface
  * required by AdonisJS, but instead of using a local database model,
  * it fetches user data from the main app via MainAppService.
@@ -33,11 +33,11 @@ export class MainAppUserProvider implements SessionUserProviderContract<MainAppU
     try {
       let user = null
       const idStr = id.toString()
-      
+
       // First try to get the user by UUID if it looks like a UUID
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       const isUuid = uuidRegex.test(idStr)
-      
+
       if (isUuid) {
         try {
           user = await mainAppService.getUser(idStr)
@@ -49,7 +49,7 @@ export class MainAppUserProvider implements SessionUserProviderContract<MainAppU
       } else {
         console.log(`ID ${idStr} is not a UUID, skipping UUID lookup`)
       }
-      
+
       // If not found or not a UUID, try to get by external ID
       if (!user) {
         try {
@@ -62,11 +62,11 @@ export class MainAppUserProvider implements SessionUserProviderContract<MainAppU
           }
         }
       }
-      
+
       if (!user) {
         return null
       }
-      
+
       return this.createUserForGuard(user)
     } catch (error) {
       console.error('Error fetching user from main app:', error)

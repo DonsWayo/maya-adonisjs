@@ -22,6 +22,10 @@ router
 
 // Error events UI routes
 router
+  .get('/errors', [ErrorEventsController, 'allErrors'])
+  .middleware(middleware.auth())
+
+router
   .get('/projects/:projectId/errors', [ErrorEventsController, 'index'])
   .middleware(middleware.auth())
 

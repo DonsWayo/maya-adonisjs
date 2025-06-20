@@ -219,7 +219,8 @@ export default class LogtoWebhookController {
       
       // Update the existing user with Logto data
       user.merge({
-        // Update the Logto user ID in customData
+        externalId: data.id, // Set the external ID
+        // Also update in customData for backward compatibility
         customData: {
           ...user.customData,
           logtoUserId: data.id,
@@ -235,13 +236,14 @@ export default class LogtoWebhookController {
       
       // Create a new user in our database with UUID
       user = new User()
-      user.id = `usr_${randomUUID()}`
+      user.id = randomUUID()
       user.merge({
         fullName: data.name,
         email: data.primaryEmail,
         avatarUrl: data.avatar,
         roleId: Roles.USER, // Default role
-        // Store the Logto user ID in customData
+        externalId: data.id, // Store the Logto user ID as external ID
+        // Also store in customData for backward compatibility
         customData: {
           logtoUserId: data.id,
         },
@@ -282,7 +284,8 @@ export default class LogtoWebhookController {
       fullName: data.name,
       email: data.primaryEmail,
       avatarUrl: data.avatar,
-      // Update the Logto user ID in customData
+      externalId: data.id, // Update the external ID
+      // Also update in customData for backward compatibility
       customData: {
         ...user.customData,
         logtoUserId: data.id,
@@ -405,13 +408,14 @@ export default class LogtoWebhookController {
       
       // Create a new user in our database with UUID
       localUser = new User()
-      localUser.id = `usr_${randomUUID()}`
+      localUser.id = randomUUID()
       localUser.merge({
         fullName: user.name,
         email: user.primaryEmail,
         avatarUrl: user.avatar,
         roleId: Roles.USER, // Default role
-        // Store the Logto user ID in customData
+        externalId: user.id, // Store the Logto user ID as external ID
+        // Also store in customData for backward compatibility
         customData: {
           logtoUserId: user.id,
           lastSignInAt: new Date().toISOString(),
@@ -447,8 +451,13 @@ export default class LogtoWebhookController {
    * This event is triggered after a user registers through Logto
    */
   private async handlePostRegister(payload: any) {
-    // This is similar to User.Created but specifically for registration
-    await this.handleUserCreated(payload)
+    // PostRegister has a different structure - user data is in payload.user
+    // Convert it to match User.Created structure
+    const userCreatedPayload = {
+      ...payload,
+      data: payload.user
+    }
+    await this.handleUserCreated(userCreatedPayload)
   }
 
   /**

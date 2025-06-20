@@ -122,7 +122,7 @@ export class LogtoDriver extends Oauth2Driver<LogtoDriverAccessToken, LogtoDrive
 
     // Set default base URL if not provided
     const logtoUrl = this.config.logtoUrl || 'https://logto.dev'
-    
+
     // Build authorizeUrl if not defined
     this.authorizeUrl = this.config.authorizeUrl || `${logtoUrl}/oidc/auth`
 
@@ -201,7 +201,7 @@ export class LogtoDriver extends Oauth2Driver<LogtoDriverAccessToken, LogtoDrive
     if (!token) {
       throw new Error('Access token is required to fetch user info')
     }
-    
+
     const request = this.getAuthenticatedRequest(this.userInfoUrl, token)
     if (typeof callback === 'function') {
       callback(request)

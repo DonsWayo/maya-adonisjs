@@ -1,9 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { randomUUID } from 'node:crypto'
-import { ErrorEvent } from '../models/error_event.js'
 import Project from '../models/project.js'
 import { storeErrorEventValidator } from '../validators.js'
 import { ClickHouseService } from '../services/clickhouse_service.js'
+import ErrorEventService from '#services/error/error_event_service'
 
 export default class ErrorEventsController {
   /*
@@ -16,10 +15,10 @@ export default class ErrorEventsController {
   public async store({ request, params, response }: HttpContext) {
     // Extract project ID from the Sentry-style URL
     const projectId = params.projectId
-    
+
     // Verify the project exists and authentication
     let project: Project | null = null
-    
+
     // Check if projectId is a valid UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (uuidRegex.test(projectId)) {
@@ -29,104 +28,35 @@ export default class ErrorEventsController {
         .first()
     } else {
       // If not a UUID, only search by public_key
-      project = await Project.query()
-        .where('public_key', projectId)
-        .first()
+      project = await Project.query().where('public_key', projectId).first()
     }
-    
+
     if (!project) {
       return response.unauthorized({ error: 'Invalid project ID or authentication' })
     }
-    
+
+    // Check if project is active
+    if (project.status !== 'active') {
+      return response.unauthorized({ error: 'Invalid project ID or authentication' })
+    }
+
     try {
       // Validate the incoming data
       const payload = await request.validateUsing(storeErrorEventValidator)
-      
-      // Generate an event ID if not provided
-      const eventId = payload.event_id || randomUUID().replace(/-/g, '')
-      
-      // Get default values for required fields
-      const eventType = payload.exception?.values?.[0]?.type || 'Error'
-      const eventMessage = payload.message || (payload.exception?.values?.[0]?.value || 'Unknown error')
-      
-      // Create the error event object
-      const errorEvent: ErrorEvent = {
-        id: eventId,
-        timestamp: payload.timestamp ? new Date(payload.timestamp) : new Date(),
-        received_at: new Date(),
-        projectId: project.id,
-        level: payload.level || 'error',
-        message: eventMessage,
-        type: eventType,
-        handled: 0, // Default to unhandled
-        severity: payload.level || 'error',
-        platform: payload.platform,
-        platform_version: null,
-        sdk: JSON.stringify(payload.sdk || { name: 'unknown', version: '0.0.0' }),
-        sdk_version: payload.sdk ? (typeof payload.sdk.version === 'string' ? payload.sdk.version : null) : null,
-        release: payload.release || null,
-        environment: payload.environment || 'production',
-        serverName: payload.server_name || null,
-        runtime: null,
-        runtime_version: null,
-        transaction: payload.transaction || null,
-        transaction_duration: null,
-        url: payload.request && typeof payload.request === 'object' ? 
-             (payload.request as any).url || null : null,
-        method: payload.request && typeof payload.request === 'object' ? 
-                (payload.request as any).method || null : null,
-        status_code: payload.request && typeof payload.request === 'object' ? 
-                    Number((payload.request as any).status_code) || null : null,
-        
-        // Anonymous user context
-        user_hash: payload.user && typeof payload.user === 'object' && (payload.user as any).id ? 
-                  String((payload.user as any).id).substring(0, 8) : null,
-        session_id: payload.contexts && typeof payload.contexts === 'object' && 
-                   (payload.contexts as any).session && typeof (payload.contexts as any).session === 'object' ? 
-                   (payload.contexts as any).session.id || null : null,
-        client_info: payload.contexts && typeof payload.contexts === 'object' ? 
-                    JSON.stringify((payload.contexts as any).client) || null : null,
-        
-        // Error details
-        exception: payload.exception ? JSON.stringify(payload.exception) : null,
-        exception_type: payload.exception?.values?.[0]?.type || null,
-        exception_value: payload.exception?.values?.[0]?.value || null,
-        exception_module: payload.exception?.values?.[0]?.module || null,
-        stack_trace: payload.exception?.values?.[0]?.stacktrace ? 
-                    JSON.stringify(payload.exception.values[0].stacktrace) : null,
-        frames_count: payload.exception?.values?.[0]?.stacktrace && 
-                     typeof payload.exception.values[0].stacktrace === 'object' && 
-                     Array.isArray((payload.exception.values[0].stacktrace as any).frames) ? 
-                     (payload.exception.values[0].stacktrace as any).frames.length : null,
-        
-        // Additional context
-        request: payload.request ? JSON.stringify(payload.request) : null,
-        tags: payload.tags ? JSON.stringify(payload.tags) : null,
-        extra: payload.extra ? JSON.stringify(payload.extra) : null,
-        breadcrumbs: payload.breadcrumbs ? JSON.stringify(payload.breadcrumbs) : null,
-        contexts: payload.contexts ? JSON.stringify(payload.contexts) : null,
-        fingerprint: payload.fingerprint || [eventType, eventMessage],
-        
-        // Performance metrics
-        memory_usage: null,
-        cpu_usage: null,
-        duration: null,
-        
-        // Metadata
-        first_seen: new Date(),
-        group_id: null,
-        is_sample: 0,
-        sample_rate: 1,
-        has_been_processed: 0
-      }
-      
-      // Save to ClickHouse
-      await ClickHouseService.storeErrorEvent(errorEvent)
-      
+
+      // Use the service to store the event
+      const result = await ErrorEventService.storeFromPayload(project.id, payload)
+
       // Return Sentry-compatible response
-      return response.json({ id: eventId })
+      return response.json(result)
     } catch (error) {
       console.error('Error storing event:', error)
+      
+      // Check if it's a validation error
+      if (error.status === 422 && error.messages) {
+        return response.unprocessableEntity(error)
+      }
+      
       return response.badRequest({ error: 'Invalid event data' })
     }
   }
@@ -137,16 +67,16 @@ export default class ErrorEventsController {
   public async index({ params, request, inertia }: HttpContext) {
     const { projectId } = params
     const { startDate, endDate, level, environment, search, page = 1, limit = 20 } = request.qs()
-    
+
     // Verify the project exists
     const project = await Project.find(projectId)
     if (!project) {
       return inertia.location(`/projects`)
     }
-    
+
     // Calculate offset for pagination
     const offset = (page - 1) * limit
-    
+
     try {
       // Query error events with filtering
       const events = await ClickHouseService.queryErrorEvents({
@@ -159,20 +89,20 @@ export default class ErrorEventsController {
         limit,
         offset,
       })
-      
+
       // Get error event counts for charts
       const eventCounts = await ClickHouseService.getErrorEventCounts(projectId, 'day')
-      
+
       // Get top error types
       const topErrorTypes = await ClickHouseService.getTopErrorTypes(projectId, 5)
-      
-      return inertia.render('error/errors/index', { 
-        project, 
-        events, 
+
+      return inertia.render('error/errors/index', {
+        project,
+        events,
         eventCounts,
         topErrorTypes,
         filters: { startDate, endDate, level, environment, search },
-        pagination: { page, limit, offset }
+        pagination: { page, limit, offset },
       })
     } catch (error) {
       console.error('Error fetching error events:', error)
@@ -185,26 +115,26 @@ export default class ErrorEventsController {
    */
   public async show({ params, inertia }: HttpContext) {
     const { projectId, id } = params
-    
+
     // Verify the project exists
     const project = await Project.find(projectId)
     if (!project) {
       return inertia.location(`/projects`)
     }
-    
+
     try {
       // Get the error event
       const event = await ClickHouseService.getErrorEventById(id)
-      
+
       if (!event) {
         return inertia.location(`/projects/${projectId}/errors`)
       }
-      
+
       // Verify the event belongs to the project
       if (event.projectId !== projectId) {
         return inertia.location(`/projects/${projectId}/errors`)
       }
-      
+
       return inertia.render('error/errors/show', { project, event })
     } catch (error) {
       console.error('Error fetching error event:', error)
@@ -213,40 +143,99 @@ export default class ErrorEventsController {
   }
 
   /**
+   * Display all error events across all projects
+   */
+  public async allErrors({ request, inertia }: HttpContext) {
+    const { startDate, endDate, level, environment, search, page = 1, limit = 20 } = request.qs()
+
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit
+
+    try {
+      // Get all projects for filtering
+      const projects = await Project.all()
+
+      // Get error events
+      const events = await ClickHouseService.queryErrorEvents({
+        startDate,
+        endDate,
+        level,
+        environment,
+        search,
+        limit,
+        offset,
+      })
+
+      // Get total count for pagination
+      const total = events.length // This is not ideal, we should have a separate count query
+
+      // Get error counts by level for cards
+      const errorCounts = { error: 0, warning: 0, info: 0, debug: 0 } // Placeholder
+
+      return inertia.render('error/errors/all', {
+        events,
+        projects,
+        total,
+        errorCounts,
+        filters: { startDate, endDate, level, environment, search },
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          perPage: limit,
+        },
+      })
+    } catch (error) {
+      console.error('Error fetching all error events:', error)
+      return inertia.render('error/errors/all', {
+        events: [],
+        projects: [],
+        total: 0,
+        errorCounts: {},
+        filters: { startDate, endDate, level, environment, search },
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          perPage: limit,
+        },
+      })
+    }
+  }
+
+  /**
    * Display the dashboard for a project
    */
   public async dashboard({ params, inertia }: HttpContext) {
     const { projectId } = params
-    
+
     // Verify the project exists
     const project = await Project.find(projectId)
     if (!project) {
       return inertia.location(`/projects`)
     }
-    
+
     try {
       // Get error event counts for charts (last 30 days)
       const eventCounts = await ClickHouseService.getErrorEventCounts(projectId, 'day')
-      
+
       // Get top error types
       const topErrorTypes = await ClickHouseService.getTopErrorTypes(projectId, 10)
-      
+
       // Get recent error events (last 10)
       const recentEvents = await ClickHouseService.queryErrorEvents({
         projectId,
         limit: 10,
         offset: 0,
       })
-      
+
       // Get summary statistics
       const summary = await ClickHouseService.getErrorEventsSummary(projectId)
-      
-      return inertia.render('error/projects/dashboard', { 
-        project, 
+
+      return inertia.render('error/projects/dashboard', {
+        project,
         eventCounts,
         topErrorTypes,
         recentEvents,
-        summary
+        summary,
       })
     } catch (error) {
       console.error('Error fetching dashboard data:', error)

@@ -1,0 +1,266 @@
+---
+title: Webhook Integration
+description: Complete guide to Logto webhook integration for real-time user and organization synchronization
+---
+
+# Webhook Integration
+
+This guide covers the complete implementation of Logto webhooks in the Maya ecosystem, enabling real-time synchronization of users and organizations between Logto and the main application.
+
+## Overview
+
+The webhook integration allows the main application to stay synchronized with Logto by receiving real-time updates when users or organizations are created, updated, or deleted. This ensures data consistency across the entire Maya ecosystem.
+
+## Architecture
+
+### Components
+
+1. **LogtoWebhookController** (`apps/main/app/auth/logto/controllers/logto_webhook_controller.ts`)
+   - Receives and processes webhook events from Logto
+   - Verifies webhook signatures for security
+   - Dispatches events to appropriate handlers
+
+2. **WebhookService** (`apps/main/app/auth/logto/services/webhook_service.ts`)
+   - Automatically registers webhooks on application startup
+   - Manages webhook lifecycle
+   - Ensures webhook configuration is up-to-date
+
+3. **ApiResourceService** (`apps/main/app/auth/logto/services/api_resource_service.ts`)
+   - Registers API resources with Logto
+   - Manages scopes and permissions
+   - Enables M2M authentication
+
+## Configuration
+
+### Environment Variables
+
+Add these variables to your `.env` file:
+
+```env
+# Webhook signing key for signature verification
+LOGTO_WEBHOOK_SIGNING_KEY=your-webhook-signing-key
+
+# M2M authentication credentials
+LOGTO_M2M_CLIENT_ID=your-m2m-client-id
+LOGTO_M2M_CLIENT_SECRET=your-m2m-client-secret
+
+# API resource identifier
+API_RESOURCE_IDENTIFIER=http://main.localhost
+```
+
+### Webhook Registration
+
+The webhook is automatically registered on application startup through the `WebhookProvider`:
+
+```typescript
+// apps/main/providers/webhook_provider.ts
+export default class WebhookProvider {
+  async start() {
+    // Register webhook
+    await webhookService.registerWebhook()
+    
+    // Register API resource
+    await apiResourceService.registerApiResource()
+  }
+}
+```
+
+## Supported Events
+
+The webhook integration handles the following Logto events:
+
+### User Events
+- **User.Created**: When a new user is created in Logto
+- **User.Data.Updated**: When user data is modified
+- **User.Deleted**: When a user is removed
+- **PostRegister**: After a user completes registration
+- **PostSignIn**: After a user signs in
+
+### Organization Events
+- **Organization.Created**: When a new organization is created
+- **Organization.Data.Updated**: When organization data is modified
+- **Organization.Deleted**: When an organization is removed
+- **Organization.User.Added**: When a user joins an organization
+- **Organization.User.Removed**: When a user leaves an organization
+- **Organization.Membership.Updated**: When organization membership changes
+
+### Role and Permission Events
+- **OrganizationRole.Created**: When a new organization role is created
+- **OrganizationRole.Data.Updated**: When role data is modified
+- **OrganizationRole.Deleted**: When a role is removed
+- **OrganizationRole.Scopes.Updated**: When role permissions change
+- **OrganizationScope.Created/Updated/Deleted**: Scope lifecycle events
+
+## Security
+
+### Signature Verification
+
+All webhook requests are verified using HMAC SHA-256 signatures:
+
+```typescript
+private verifySignature(signingKey: string, rawBody: Buffer, expectedSignature: string): boolean {
+  const hmac = createHmac('sha256', signingKey)
+  hmac.update(rawBody)
+  const calculatedSignature = hmac.digest('hex')
+  return calculatedSignature === expectedSignature
+}
+```
+
+The signature is sent in the `logto-signature-sha-256` header and must match the calculated signature of the raw request body.
+
+## Event Processing
+
+### User Creation Flow
+
+When a user is created in Logto:
+
+1. Logto sends a `User.Created` or `PostRegister` webhook event
+2. The webhook controller verifies the signature
+3. A new user is created in the main app database with:
+   - UUID as primary key
+   - Logto user ID stored in `externalId` field
+   - User profile data (name, email, avatar)
+   - Default role assignment
+
+```typescript
+private async handleUserCreated(payload: any) {
+  const data = payload.data
+  
+  // Check if user already exists
+  let user = await User.findBy('email', data.primaryEmail)
+  
+  if (!user) {
+    // Create new user
+    user = new User()
+    user.id = randomUUID()
+    user.merge({
+      fullName: data.name,
+      email: data.primaryEmail,
+      avatarUrl: data.avatar,
+      roleId: Roles.USER,
+      externalId: data.id, // Logto user ID
+    })
+    
+    await user.save()
+    
+    // Emit event for other services
+    await emitter.emit('user:created', { user, source: 'logto_webhook' })
+  }
+}
+```
+
+### User Update Flow
+
+When user data is updated in Logto:
+
+1. Logto sends a `User.Data.Updated` event
+2. The webhook finds the user by external ID or email
+3. User data is synchronized:
+   - Profile information updated
+   - External ID maintained
+   - Custom data preserved
+
+### PostRegister vs User.Created
+
+The webhook handles both events differently:
+- **User.Created**: Standard event with user data in `payload.data`
+- **PostRegister**: Special event with user data in `payload.user`
+
+The controller transforms PostRegister events to match the User.Created structure:
+
+```typescript
+private async handlePostRegister(payload: any) {
+  // Transform payload structure
+  const userCreatedPayload = {
+    ...payload,
+    data: payload.user
+  }
+  await this.handleUserCreated(userCreatedPayload)
+}
+```
+
+## Error Handling
+
+The webhook implementation includes comprehensive error handling:
+
+1. **Invalid Signatures**: Returns 401 Unauthorized
+2. **Processing Errors**: Returns 500 with error details
+3. **Missing Users**: Creates new users if not found
+4. **Database Errors**: Logged and returned as 500 errors
+
+## Monitoring and Debugging
+
+### Logging
+
+The webhook controller logs all events for debugging:
+
+```typescript
+logger.info({
+  url: request.url(),
+  method: request.method(),
+  headers: request.headers(),
+  body: request.body(),
+  event: request.input('event'),
+  hookId: request.input('hookId'),
+}, 'WEBHOOK REQUEST RECEIVED')
+```
+
+### Common Issues
+
+1. **Signature Verification Failures**
+   - Ensure `LOGTO_WEBHOOK_SIGNING_KEY` matches Logto configuration
+   - Check for proxy headers if behind a reverse proxy
+
+2. **User Not Found Errors**
+   - Verify the `externalId` field is being set correctly
+   - Check that webhook events are being processed
+
+3. **UUID Format Errors**
+   - Ensure user IDs use standard UUID format (not prefixed)
+   - Database schema expects UUID type for primary keys
+
+## Testing Webhooks
+
+### Local Development
+
+1. Use ngrok or similar to expose local webhook endpoint
+2. Configure Logto webhook URL to point to ngrok URL
+3. Test user creation/update flows
+
+### Manual Testing
+
+Send test webhook requests:
+
+```bash
+curl -X POST http://main.localhost/api/webhooks/logto \
+  -H "Content-Type: application/json" \
+  -H "logto-signature-sha-256: <calculated-signature>" \
+  -d '{
+    "event": "User.Created",
+    "data": {
+      "id": "user_123",
+      "primaryEmail": "test@example.com",
+      "name": "Test User"
+    }
+  }'
+```
+
+## Best Practices
+
+1. **Always verify signatures** in production
+2. **Handle duplicate events** gracefully (webhooks may be retried)
+3. **Process events asynchronously** for better performance
+4. **Log all events** for audit trails
+5. **Monitor webhook health** and processing times
+6. **Use transactions** for data consistency
+
+## Integration with Other Services
+
+The webhook system emits events that other services can listen to:
+
+- `user:created`: When a new user is created
+- `user:updated`: When user data is modified
+- `user:deleted`: When a user is removed
+- `logto:webhook`: Raw webhook events for custom processing
+
+These events enable reactive programming patterns throughout the application.

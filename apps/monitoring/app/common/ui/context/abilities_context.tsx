@@ -4,7 +4,7 @@ import { PureAbility, AbilityBuilder } from '@casl/ability'
 import usePageProps from '#common/ui/hooks/use_page_props'
 
 export type Actions = 'create' | 'read' | 'update' | 'delete' | 'manage'
-export type Subjects = 'users' | 'companies' | 'all'
+export type Subjects = 'users' | 'companies' | 'projects' | 'errors' | 'analytics' | 'all'
 export type AppAbility = PureAbility<[Actions, Subjects]>
 
 interface AbilityContextType {
@@ -49,9 +49,7 @@ export default function AbilityProvider({ children }: AbilitiesProviderProps) {
   )
 
   return (
-    <AbilityContext.Provider value={{ ability, hasPermission }}>
-      {children}
-    </AbilityContext.Provider>
+    <AbilityContext.Provider value={{ ability, hasPermission }}>{children}</AbilityContext.Provider>
   )
 }
 

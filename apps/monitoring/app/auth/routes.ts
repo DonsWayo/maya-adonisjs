@@ -10,11 +10,9 @@ import router from '@adonisjs/core/services/router'
 
 const SocialController = () => import('#auth/controllers/social_controller')
 
-
 router
   .get('/:provider/redirect', [SocialController, 'redirect'])
   .where('provider', 'logto')
   .as('social.create')
 
-router.get('/:provider/callback', [SocialController, 'callback'])
-  .where('provider', 'logto')
+router.get('/:provider/callback', [SocialController, 'callback']).where('provider', 'logto')

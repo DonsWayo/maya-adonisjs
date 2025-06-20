@@ -14,13 +14,13 @@ export default interface ErrorEventDto {
     name: string
     version: string
   }
-  
+
   // Optional event data
   release?: string
   environment: string
   serverName?: string
   transaction?: string
-  
+
   // User information
   user?: {
     id?: string | number
@@ -29,7 +29,7 @@ export default interface ErrorEventDto {
     ip_address?: string
     [key: string]: any
   }
-  
+
   // Request information
   request?: {
     url?: string
@@ -38,11 +38,11 @@ export default interface ErrorEventDto {
     data?: any
     [key: string]: any
   }
-  
+
   // Additional data
   tags?: Record<string, string>
   extra?: Record<string, any>
-  
+
   // Exception information
   exception?: {
     values: Array<{
@@ -63,7 +63,7 @@ export default interface ErrorEventDto {
       [key: string]: any
     }>
   }
-  
+
   // Breadcrumbs for event tracing
   breadcrumbs?: Array<{
     timestamp: string | number
@@ -73,10 +73,10 @@ export default interface ErrorEventDto {
     message?: string
     data?: Record<string, any>
   }>
-  
+
   // Context information (device, os, browser, etc.)
   contexts?: Record<string, any>
-  
+
   // Fingerprint for grouping
   fingerprint?: string[]
 }

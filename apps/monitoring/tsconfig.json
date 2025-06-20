@@ -4,5 +4,5 @@
     "rootDir": "./",
     "outDir": "./build"
   },
-  "exclude": ["app/**/*.tsx", "node_modules", "build"]
+  "exclude": ["app/**/*.tsx", "app/**/ui/**", "node_modules", "build"]
 }

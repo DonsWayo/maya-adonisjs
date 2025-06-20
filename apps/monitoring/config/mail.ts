@@ -21,11 +21,13 @@ const mailConfig = defineConfig({
       host: env.get('SMTP_HOST') || 'localhost',
       port: env.get('SMTP_PORT') || 1025,
       secure: env.get('SMTP_SECURE', false),
-      auth: env.get('SMTP_USERNAME') ? {
-        type: 'login',
-        user: env.get('SMTP_USERNAME') || '',
-        pass: env.get('SMTP_PASSWORD') || '',
-      } : undefined,
+      auth: env.get('SMTP_USERNAME')
+        ? {
+            type: 'login',
+            user: env.get('SMTP_USERNAME') || '',
+            pass: env.get('SMTP_PASSWORD') || '',
+          }
+        : undefined,
       tls: {
         rejectUnauthorized: false,
       },
@@ -35,7 +37,7 @@ const mailConfig = defineConfig({
       // @ts-ignore - debug is a valid option for nodemailer
       debug: env.get('NODE_ENV') === 'development',
     }),
-    
+
     // Resend configuration for production
     resend: transports.resend({
       key: env.get('RESEND_API_KEY', ''),

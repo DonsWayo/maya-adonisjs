@@ -1,7 +1,4 @@
-// @ts-ignore - Ignoring JSX import error
 import { Subjects } from '#common/ui/context/abilities_context'
-
-// @ts-ignore - Ignoring React import error
 import { LucideIcon } from 'lucide-react'
 
 interface ItemNav {

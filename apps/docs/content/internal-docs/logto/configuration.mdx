@@ -18,6 +18,16 @@ LOGTO_APP_ID=your-app-id
 LOGTO_APP_SECRET=your-app-secret
 LOGTO_API_RESOURCE=https://default.logto.app/api
 LOGTO_CALLBACK_URL=http://main.localhost/logto/callback
+
+# Webhook Configuration
+LOGTO_WEBHOOK_SIGNING_KEY=your-webhook-signing-key
+
+# M2M Authentication (for monitoring app and other services)
+LOGTO_M2M_CLIENT_ID=your-m2m-client-id
+LOGTO_M2M_CLIENT_SECRET=your-m2m-client-secret
+
+# API Resource Identifier
+API_RESOURCE_IDENTIFIER=http://main.localhost
 ```
 
 ### Environment Variable Details
@@ -29,6 +39,10 @@ LOGTO_CALLBACK_URL=http://main.localhost/logto/callback
 | `LOGTO_APP_SECRET` | The client secret of your Logto application | `eDi7jK9X3Jx7P8Y5tQ2Z` |
 | `LOGTO_API_RESOURCE` | The API resource identifier for the Logto Management API | `https://default.logto.app/api` |
 | `LOGTO_CALLBACK_URL` | The callback URL for the OAuth flow | `http://main.localhost/logto/callback` |
+| `LOGTO_WEBHOOK_SIGNING_KEY` | The signing key for webhook signature verification | `6gV9QpLjrpwi6GXkRwchcSUGAOIF9HX9` |
+| `LOGTO_M2M_CLIENT_ID` | Machine-to-machine client ID for service authentication | `5gkbdg3wsf7ki9h66zo2m` |
+| `LOGTO_M2M_CLIENT_SECRET` | Machine-to-machine client secret | `RNn3GQHFTgX0VeoWBOAXaaquH0xDNLmv` |
+| `API_RESOURCE_IDENTIFIER` | The API resource identifier for your application | `http://main.localhost` |
 
 ## AdonisJS Configuration
 

@@ -3,8 +3,6 @@ import env from '#start/env'
 import { defineConfig, services } from '@adonisjs/ally'
 import { HttpContext } from '@adonisjs/core/http'
 
-
-
 export function logto(config: LogtoDriverConfig) {
   return (ctx: HttpContext) => new LogtoDriver(ctx, config)
 }
@@ -24,7 +22,7 @@ const allyConfig = defineConfig({
     clientId: env.get('LOGTO_CLIENT_ID'),
     clientSecret: env.get('LOGTO_CLIENT_SECRET'),
     callbackUrl: env.get('LOGTO_CALLBACK_URL'),
-  })
+  }),
 })
 
 export default allyConfig

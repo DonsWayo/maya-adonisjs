@@ -70,29 +70,21 @@ export const statusTypes = [
 
 // Helper functions for UI components
 export const getPlatformBadgeColor = (platform: string): string => {
-  const platformType = platformTypes.find(
-    (p) => p.id === platform.toLowerCase()
-  )
+  const platformType = platformTypes.find((p) => p.id === platform.toLowerCase())
   return platformType?.color || 'bg-gray-500'
 }
 
 export const getStatusBadgeColor = (status: string): string => {
-  const statusType = statusTypes.find(
-    (s) => s.id === status.toLowerCase()
-  )
+  const statusType = statusTypes.find((s) => s.id === status.toLowerCase())
   return statusType?.color || 'bg-gray-500'
 }
 
 export const getErrorLevelBadgeColor = (level: string): string => {
-  const errorLevel = errorLevels.find(
-    (l) => l.id === level.toLowerCase()
-  )
+  const errorLevel = errorLevels.find((l) => l.id === level.toLowerCase())
   return errorLevel?.color || 'bg-gray-500'
 }
 
 export const getErrorLevelIcon = (level: string) => {
-  const errorLevel = errorLevels.find(
-    (l) => l.id === level.toLowerCase()
-  )
+  const errorLevel = errorLevels.find((l) => l.id === level.toLowerCase())
   return errorLevel?.icon || AlertCircle
 }

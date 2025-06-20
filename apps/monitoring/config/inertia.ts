@@ -1,8 +1,6 @@
 import { defineConfig } from '@adonisjs/inertia'
 import type { InferSharedProps } from '@adonisjs/inertia/types'
 
-
-
 const inertiaConfig = defineConfig({
   /**
    * Path to the Edge view that will be used as the root view for Inertia responses
@@ -14,7 +12,7 @@ const inertiaConfig = defineConfig({
    */
   sharedData: {
     user: async (ctx) => {
-      return ctx.auth?.user;
+      return ctx.auth?.user
     },
     flashMessages: (ctx) => ctx.session?.flashMessages.all(),
     abilities: (ctx) => {

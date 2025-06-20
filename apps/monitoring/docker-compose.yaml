@@ -26,6 +26,29 @@ services:
     ports:
       - '3333:3333'
 
+  # monitoring worker
+  monitoring-worker:
+    container_name: 'monitoring_worker_standalone'
+    build:
+      context: ../../
+      dockerfile: apps/monitoring/Dockerfile
+      target: development
+    env_file:
+      - .env
+    volumes:
+      - ./:/app/apps/monitoring
+      - /app/apps/monitoring/node_modules
+    command: ["node", "ace", "queue:work"]
+    networks:
+      - maya_network
+    depends_on:
+      pgsql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_started
+
   # Import services from the root docker-compose.yaml
   pgsql:
     extends:
@@ -55,20 +78,20 @@ services:
     networks:
       - maya_network
 
-  # Optional services - uncomment if needed
-  # redis:
-  #   extends:
-  #     file: ../../docker-compose.yaml
-  #     service: redis
-  #   networks:
-  #     - maya_network
+  # Required services for monitoring
+  redis:
+    extends:
+      file: ../../docker-compose.yaml
+      service: redis
+    networks:
+      - maya_network
 
-  # clickhouse:
-  #   extends:
-  #     file: ../../docker-compose.yaml
-  #     service: clickhouse
-  #   networks:
-  #     - maya_network
+  clickhouse:
+    extends:
+      file: ../../docker-compose.yaml
+      service: clickhouse
+    networks:
+      - maya_network
 
   # logto:
   #   extends:

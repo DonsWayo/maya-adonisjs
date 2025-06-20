@@ -1,4 +1,3 @@
-
 import Project from '#error/models/project'
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import { randomUUID } from 'node:crypto'
@@ -7,13 +6,13 @@ export default class ProjectSeeder extends BaseSeeder {
   async run() {
     // Check if projects already exist
     const existingProjects = await Project.all()
-    
+
     // If projects already exist, skip seeding
     if (existingProjects.length > 0) {
       console.log('Projects already exist, skipping seeding')
       return
     }
-    
+
     // Create demo projects
     await Project.createMany([
       {

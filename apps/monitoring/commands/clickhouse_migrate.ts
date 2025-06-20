@@ -14,7 +14,7 @@ export default class ClickhouseMigrate extends BaseCommand {
    * Command name is used to run the command
    */
   static commandName = 'clickhouse:migrate'
-  
+
   /**
    * Command description is displayed in the "help" output
    */
@@ -35,12 +35,13 @@ export default class ClickhouseMigrate extends BaseCommand {
     try {
       // Check if the table exists
       const result = await clickhouse.query({
-        query: "SELECT name FROM system.tables WHERE database = currentDatabase() AND name = 'clickhouse_migrations'",
-        format: 'JSONEachRow'
+        query:
+          "SELECT name FROM system.tables WHERE database = currentDatabase() AND name = 'clickhouse_migrations'",
+        format: 'JSONEachRow',
       })
-      
+
       const tables = await result.json()
-      
+
       if (!Array.isArray(tables) || tables.length === 0) {
         // Create the migrations table if it doesn't exist
         this.logger.info('Creating clickhouse_migrations table...')
@@ -53,7 +54,7 @@ export default class ClickhouseMigrate extends BaseCommand {
               migration_time DateTime DEFAULT now()
             ) ENGINE = MergeTree()
             ORDER BY (name, batch)
-          `
+          `,
         })
         this.logger.success('Created clickhouse_migrations table')
       } else {
@@ -78,11 +79,11 @@ export default class ClickhouseMigrate extends BaseCommand {
       // Get list of already run migrations
       const result = await clickhouse.query({
         query: 'SELECT name FROM clickhouse_migrations',
-        format: 'JSONEachRow'
+        format: 'JSONEachRow',
       })
-      
+
       // Handle the result properly
-      const existingMigrations: Array<{name: string}> = []
+      const existingMigrations: Array<{ name: string }> = []
       try {
         const jsonResult = await result.json()
         if (Array.isArray(jsonResult)) {
@@ -97,18 +98,24 @@ export default class ClickhouseMigrate extends BaseCommand {
       }
 
       // Get all migration files
-      const migrationsPath = join(app.appRoot.toString(), 'app/error/database/clickhouse_migrations')
-      
+      const appRootStr = app.appRoot.toString()
+      const cwd = process.cwd()
+      this.logger.info(`Current working directory: ${cwd}`)
+      this.logger.info(`App root: ${appRootStr}`)
+
+      const migrationsPath = join(appRootStr, 'app/error/database/clickhouse_migrations')
+
       this.logger.info(`Looking for migrations in: ${migrationsPath}`)
-      
+
       if (!existsSync(migrationsPath)) {
         // Try alternative paths
         const alternativePaths = [
-          join(app.appRoot.toString(), 'app', 'error', 'database', 'clickhouse_migrations'),
-          join(app.appRoot.toString(), '/app/error/database/clickhouse_migrations'),
-          '/app/apps/monitoring/app/error/database/clickhouse_migrations'
+          join(cwd, 'app/error/database/clickhouse_migrations'),
+          join(appRootStr, 'app', 'error', 'database', 'clickhouse_migrations'),
+          join(appRootStr, '/app/error/database/clickhouse_migrations'),
+          '/app/apps/monitoring/app/error/database/clickhouse_migrations',
         ]
-        
+
         for (const path of alternativePaths) {
           this.logger.info(`Trying alternative path: ${path}`)
           if (existsSync(path)) {
@@ -116,24 +123,27 @@ export default class ClickhouseMigrate extends BaseCommand {
             return this.processMigrationsFiles(path, existingMigrations)
           }
         }
-        
+
         this.logger.warning('Migrations directory not found')
         return
       }
-      
+
       return this.processMigrationsFiles(migrationsPath, existingMigrations)
     } catch (error: any) {
       this.logger.error(`ClickHouse migration failed: ${error.message}`)
       this.exitCode = 1
     }
   }
-  
+
   /**
    * Process migrations in the given directory
    */
-  private async processMigrationsFiles(migrationsPath: string, existingMigrations: Array<{name: string}>) {
+  private async processMigrationsFiles(
+    migrationsPath: string,
+    existingMigrations: Array<{ name: string }>
+  ) {
     const migrationFiles = readdirSync(migrationsPath)
-      .filter(file => file.endsWith('.ts'))
+      .filter((file) => file.endsWith('.ts'))
       .sort()
 
     if (migrationFiles.length === 0) {
@@ -146,7 +156,7 @@ export default class ClickhouseMigrate extends BaseCommand {
     // Get the latest batch number
     const batchResult = await clickhouse.query({
       query: 'SELECT MAX(batch) as batch FROM clickhouse_migrations',
-      format: 'JSONEachRow'
+      format: 'JSONEachRow',
     })
 
     let batch = 1
@@ -164,7 +174,7 @@ export default class ClickhouseMigrate extends BaseCommand {
       const migrationName = file.replace('.ts', '')
 
       // Skip if already run
-      if (existingMigrations.some((m: {name: string}) => m.name === migrationName)) {
+      if (existingMigrations.some((m: { name: string }) => m.name === migrationName)) {
         this.logger.info(`Migration ${migrationName} already run, skipping`)
         continue
       }
@@ -182,13 +192,14 @@ export default class ClickhouseMigrate extends BaseCommand {
           if (typeof migration.default === 'function' || typeof migration.default === 'object') {
             try {
               // Try to instantiate if it's a class
-              const instance = typeof migration.default === 'function' 
-                ? new migration.default() 
-                : migration.default
-              
+              const instance =
+                typeof migration.default === 'function'
+                  ? new migration.default()
+                  : migration.default
+
               if (instance && typeof instance.up === 'function') {
                 this.logger.info(`Running migration using class instance up method`)
-                
+
                 // Pass clickhouse client explicitly to the migration
                 try {
                   await instance.up(clickhouse)
@@ -229,7 +240,9 @@ export default class ClickhouseMigrate extends BaseCommand {
         } else {
           this.logger.info(`Migration structure: ${JSON.stringify(Object.keys(migration))}`)
           if (migration.default) {
-            this.logger.info(`Default structure: ${JSON.stringify(Object.getOwnPropertyNames(migration.default))}`)
+            this.logger.info(
+              `Default structure: ${JSON.stringify(Object.getOwnPropertyNames(migration.default))}`
+            )
           }
           throw new Error(`Migration ${migrationName} does not export an 'up' function`)
         }
@@ -237,24 +250,28 @@ export default class ClickhouseMigrate extends BaseCommand {
         // Record the migration
         try {
           const uuid = randomUUID()
-          
-          // Use direct SQL insert without parameters
-          const escapedName = migrationName.replace(/'/g, "''")
-          const insertQuery = `
-            INSERT INTO clickhouse_migrations (id, name, batch)
-            VALUES ('${uuid}', '${escapedName}', ${batch})
-          `
-          
-          this.logger.info(`Recording migration with query: ${insertQuery.trim()}`)
-          
-          await clickhouse.query({
-            query: insertQuery
+
+          // Use ClickHouse insert method instead of raw query
+          await clickhouse.insert({
+            table: 'clickhouse_migrations',
+            values: [
+              {
+                id: uuid,
+                name: migrationName,
+                batch: batch,
+              },
+            ],
+            format: 'JSONEachRow',
           })
-          
+
           this.logger.success(`Migration ${migrationName} recorded in clickhouse_migrations table`)
         } catch (insertError: any) {
-          this.logger.warning(`Failed to record migration in clickhouse_migrations table: ${insertError.message}`)
-          this.logger.info('Migration was applied successfully but not recorded in the migrations table')
+          this.logger.warning(
+            `Failed to record migration in clickhouse_migrations table: ${insertError.message}`
+          )
+          this.logger.info(
+            'Migration was applied successfully but not recorded in the migrations table'
+          )
         }
 
         this.logger.success(`Migration ${migrationName} completed successfully`)

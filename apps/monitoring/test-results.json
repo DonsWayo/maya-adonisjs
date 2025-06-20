@@ -1,0 +1,398 @@
+
+> monitoring@0.0.0 test
+> node ace test --reporter=json
+
+c[ info ] booting application to run tests...
+WebSocket server error: Port 24678 is already in use
+❯ Already up to date
+Generating 50 error events... (TEST MODE)
+Progress: 10/50
+Progress: 20/50
+Progress: 30/50
+Progress: 40/50
+Progress: 50/50
+Error seeding completed!
+❯ completed app/error/database/seeders/enhanced_error_seeder
+Projects already exist, skipping seeding
+❯ completed app/error/database/seeders/project_seeder
+
+unit / ClickHouse Service (tests/unit/error/services/clickhouse_service.spec.ts)
+  ✔ should create valid error event object (1.01ms)
+  ✔ should validate error event required fields (0.14ms)
+  ✔ should handle JSON stringification of complex objects (0.51ms)
+  ✔ should handle null and undefined values properly (0.12ms)
+  ✔ should create proper fingerprint array (0.41ms)
+
+functional / Error Events Controller (tests/functional/error/error_events_controller.spec.ts)
+  ✔ should store error event via API endpoint (85.3ms)
+  ✔ should return 401 for invalid project ID (12ms)
+  ● should return error events index page (0ms)
+    └── UI tests will be handled by Playwright
+  ● should return project dashboard page (0ms)
+    └── UI tests will be handled by Playwright
+  ● should redirect to projects list for invalid project (0ms)
+    └── UI tests will be handled by Playwright
+  ✔ should handle error event with minimal data (20.57ms)
+  ✔ should store error event with user context (17.47ms)
+  ● should filter error events by level (0ms)
+    └── UI tests will be handled by Playwright
+  ● should filter error events by environment (0ms)
+    └── UI tests will be handled by Playwright
+  ● should paginate error events (0ms)
+    └── UI tests will be handled by Playwright
+Error storing event: ValidationError: Validation failure
+    at SimpleErrorReporter.createError (file:///app/node_modules/.pnpm/@vinejs+vine@3.0.1/node_modules/@vinejs/vine/build/chunk-YXNUTVGP.js:140:12)
+    at eval (eval at #toAsyncFunction (file:///app/node_modules/.pnpm/@vinejs+compiler@3.0.0/node_modules/@vinejs/compiler/build/chunk-K5F7IOJS.js:1071:12), <anonymous>:845:23)
+    at VineValidator.validate (file:///app/node_modules/.pnpm/@vinejs+vine@3.0.1/node_modules/@vinejs/vine/build/chunk-FED7BU4B.js:2980:16)
+    at RequestValidator.validateUsing (file:///app/node_modules/.pnpm/@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8.3__@vinejs+vine@3.0.1_edge.js@6.2.1/node_modules/@adonisjs/core/build/modules/http/request_validator.js:71:26)
+    at Request.validateUsing (file:///app/node_modules/.pnpm/@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8.3__@vinejs+vine@3.0.1_edge.js@6.2.1/node_modules/@adonisjs/core/build/providers/vinejs_provider.js:97:70)
+    at ErrorEventsController.store (/app/apps/monitoring/app/error/controllers/error_events_controller.ts:40:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ShieldMiddleware.handle (file:///app/node_modules/.pnpm/@adonisjs+shield@8.2.0_@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8.3_a49bd95bf8e042445190a908092c4e1a/node_modules/@adonisjs/shield/build/chunk-2UDO3ZLM.js:28:5)
+    at async SessionMiddleware.handle (/app/node_modules/.pnpm/@adonisjs+session@7.5.1_@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8._897b94f507ca4afb0885a35a736c379b/node_modules/@adonisjs/session/src/session_middleware.ts:81:22)
+    at async InertiaMiddleware.handle (file:///app/node_modules/.pnpm/@adonisjs+inertia@3.1.1_d578a8bb5790119ed625d24276b734c6/node_modules/@adonisjs/inertia/build/chunk-W7TVEB4V.js:393:5) {
+  status: 422,
+  code: 'E_VALIDATION_ERROR',
+  messages: [
+    {
+      message: 'The platform field must be defined',
+      rule: 'required',
+      field: 'platform'
+    }
+  ]
+}
+  ✖ should validate required platform field (13.3ms)
+  ✔ should handle complex exception with stacktrace (16.69ms)
+  ✔ should handle multiple exceptions in chain (15.43ms)
+  ✔ should store breadcrumbs and contexts (13.11ms)
+  ✔ should handle request context with sensitive data filtering (21.33ms)
+  ✔ should handle tags and extra data (17.26ms)
+Failed to store error event in ClickHouse: RangeError: Invalid time value
+    at Date.toISOString (<anonymous>)
+    at formatDateTime (/app/apps/monitoring/app/error/services/clickhouse_service.ts:27:21)
+    at Function.storeErrorEvent (/app/apps/monitoring/app/error/services/clickhouse_service.ts:32:20)
+    at Function.storeFromPayload (/app/apps/monitoring/app/services/error/error_event_service.ts:116:29)
+    at ErrorEventsController.store (/app/apps/monitoring/app/error/controllers/error_events_controller.ts:43:46)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ShieldMiddleware.handle (file:///app/node_modules/.pnpm/@adonisjs+shield@8.2.0_@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8.3_a49bd95bf8e042445190a908092c4e1a/node_modules/@adonisjs/shield/build/chunk-2UDO3ZLM.js:28:5)
+    at async SessionMiddleware.handle (/app/node_modules/.pnpm/@adonisjs+session@7.5.1_@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8._897b94f507ca4afb0885a35a736c379b/node_modules/@adonisjs/session/src/session_middleware.ts:81:22)
+    at async InertiaMiddleware.handle (file:///app/node_modules/.pnpm/@adonisjs+inertia@3.1.1_d578a8bb5790119ed625d24276b734c6/node_modules/@adonisjs/inertia/build/chunk-W7TVEB4V.js:393:5)
+    at async ViteMiddleware.handle (/app/node_modules/.pnpm/@adonisjs+vite@4.0.0_@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8.3___b2760638e819bf3dc7ade8dc558c76ee/node_modules/@adonisjs/vite/src/vite_middleware.ts:42:5)
+Error storing event: RangeError: Invalid time value
+    at Date.toISOString (<anonymous>)
+    at formatDateTime (/app/apps/monitoring/app/error/services/clickhouse_service.ts:27:21)
+    at Function.storeErrorEvent (/app/apps/monitoring/app/error/services/clickhouse_service.ts:32:20)
+    at Function.storeFromPayload (/app/apps/monitoring/app/services/error/error_event_service.ts:116:29)
+    at ErrorEventsController.store (/app/apps/monitoring/app/error/controllers/error_events_controller.ts:43:46)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ShieldMiddleware.handle (file:///app/node_modules/.pnpm/@adonisjs+shield@8.2.0_@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8.3_a49bd95bf8e042445190a908092c4e1a/node_modules/@adonisjs/shield/build/chunk-2UDO3ZLM.js:28:5)
+    at async SessionMiddleware.handle (/app/node_modules/.pnpm/@adonisjs+session@7.5.1_@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8._897b94f507ca4afb0885a35a736c379b/node_modules/@adonisjs/session/src/session_middleware.ts:81:22)
+    at async InertiaMiddleware.handle (file:///app/node_modules/.pnpm/@adonisjs+inertia@3.1.1_d578a8bb5790119ed625d24276b734c6/node_modules/@adonisjs/inertia/build/chunk-W7TVEB4V.js:393:5)
+    at async ViteMiddleware.handle (/app/node_modules/.pnpm/@adonisjs+vite@4.0.0_@adonisjs+core@6.18.0_@adonisjs+assembler@7.8.2_typescript@5.8.3___b2760638e819bf3dc7ade8dc558c76ee/node_modules/@adonisjs/vite/src/vite_middleware.ts:42:5)
+  ✖ should reject events with invalid timestamp formats (9.05ms)
+  ✔ should handle very large error messages (11.59ms)
+  ✔ should handle concurrent event submissions (80.56ms)
+  ✔ should store events with different severity levels (55.92ms)
+  ✔ should handle events with custom fingerprints (16.68ms)
+  ✔ should accept events via public key (17.25ms)
+  ✔ should handle SDK and runtime information (17.46ms)
+  ✔ should handle transaction and performance data (17.19ms)
+  ✖ should reject events from inactive projects (29.17ms)
+
+functional / ProcessEvent Job (tests/functional/jobs/process_event.spec.ts)
+  ✖ should process event and create error group (11.57ms)
+  ✖ should update existing error group on duplicate fingerprint (20.99ms)
+  ✖ should handle missing event gracefully (11.3ms)
+  ✔ should generate correct fingerprint hash (12.65ms)
+  ✔ should create group with proper title from exception (6.31ms)
+  ✔ should create group with message when no exception (9.69ms)
+  ✖ should update group statistics after processing (36.23ms)
+  ✔ should determine when AI analysis is needed (7.07ms)
+  ✔ should check alert conditions for new error (16.79ms)
+  ✔ should check alert conditions for error spike (9.81ms)
+  ✖ should handle concurrent processing of same fingerprint (29.78ms)
+  ✖ should mark event as processed (11.72ms)
+❯ Already up to date
+ ERRORS 
+
+❯ Error Events Controller / should validate required platform field
+
+- Expected  - 1
++ Received  + 1
+
+- 422
++ 400
+
+[31mℹ AssertionError: expected 400 to equal 422[39m
+
+ ⁃ at Assert.equal [33m(/app/node_modules/.pnpm/@japa+assert@4.0.1_@japa+runner@4.2.0/node_modules/@japa/assert/build/index.js:214:19)[39m
+ ⁃ at ApiResponse.assertStatus [33m(/app/node_modules/.pnpm/@japa+api-client@3.1.0_@japa+assert@4.0.1_@japa+runner@4.2.0__@japa+runner@4.2.0/node_modules/@japa/api-client/build/index.js:364:17)[39m
+ ⁃ at Object.executor [33m(tests/functional/error/error_events_controller.spec.ts:180:14)[39m
+
+   [2m175[22m [2m┃[22m        [90m// Missing required 'platform' field
+   [2m176[22m [2m┃[22m  [0m    }
+   [2m177[22m [2m┃[22m  
+   [2m178[22m [2m┃[22m      [31mconst[0m response [34m=[0m [31mawait[0m client[34m.[0m[35mpost[0m([32m`/api/[0m[31m${[0mtestProject[34m.[0mid[31m}[0m[32m/store`[0m)[34m.[0m[35mjson[0m(invalidEventData)
+   [2m179[22m [2m┃[22m  
+ [41m❯ 180 ┃      response.assertStatus(422)[49m
+   [2m181[22m [2m┃[22m      response[34m.[0m[35massertBodyContains[0m({ 
+   [2m182[22m [2m┃[22m        messages[34m:[0m [{ 
+   [2m183[22m [2m┃[22m          field[34m:[0m [32m'platform'[0m[34m,[0m 
+   [2m184[22m [2m┃[22m          message[34m:[0m [32m'The platform field must be defined'[0m[34m,[0m
+   [2m185[22m [2m┃[22m          rule[34m:[0m [32m'required'[0m 
+
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+ ⁃ at async #wrapTestInTimeout [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1054:7)[39m
+ ⁃ at async TestRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1102:7)[39m
+ ⁃ at async Test.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1482:5)[39m
+ ⁃ at async GroupRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:345:7)[39m
+ ⁃ at async Group.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:513:5)[39m
+ ⁃ at async SuiteRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1809:7)[39m
+[1/9]─
+
+❯ Error Events Controller / should reject events with invalid timestamp formats
+
+- Expected  - 1
++ Received  + 1
+
+- 200
++ 400
+
+[31mℹ AssertionError: expected 400 to equal 200[39m
+
+ ⁃ at Assert.equal [33m(/app/node_modules/.pnpm/@japa+assert@4.0.1_@japa+runner@4.2.0/node_modules/@japa/assert/build/index.js:214:19)[39m
+ ⁃ at ApiResponse.assertStatus [33m(/app/node_modules/.pnpm/@japa+api-client@3.1.0_@japa+assert@4.0.1_@japa+runner@4.2.0__@japa+runner@4.2.0/node_modules/@japa/api-client/build/index.js:364:17)[39m
+ ⁃ at Object.executor [33m(tests/functional/error/error_events_controller.spec.ts:381:14)[39m
+
+   [2m376[22m [2m┃[22m  
+   [2m377[22m [2m┃[22m      [31mconst[0m response [34m=[0m [31mawait[0m client[34m.[0m[35mpost[0m([32m`/api/[0m[31m${[0mtestProject[34m.[0mid[31m}[0m[32m/store`[0m)[34m.[0m[35mjson[0m(errorEventData)
+   [2m378[22m [2m┃[22m  
+   [2m379[22m [2m┃[22m      [90m// The API accepts the invalid timestamp but will fail during processing
+   [2m380[22m [2m┃[22m  [0m    [90m// This is by design to maintain Sentry compatibility
+ [41m❯ 381 ┃      response.assertStatus(200)[49m
+   [2m382[22m [2m┃[22m    })
+   [2m383[22m [2m┃[22m  
+   [2m384[22m [2m┃[22m    [35mtest[0m([32m'should handle very large error messages'[0m[34m,[0m [31masync[0m ({ client[34m,[0m assert }) [31m=>[0m {
+   [2m385[22m [2m┃[22m      [31mconst[0m largeMessage [34m=[0m [32m'A'[0m[34m.[0m[35mrepeat[0m([33m10000[0m) [90m// 10KB message
+   [2m386[22m [2m┃[22m  [0m    [31mconst[0m errorEventData [34m=[0m {
+
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+ ⁃ at async #wrapTestInTimeout [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1054:7)[39m
+ ⁃ at async TestRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1102:7)[39m
+ ⁃ at async Test.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1482:5)[39m
+ ⁃ at async GroupRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:345:7)[39m
+ ⁃ at async Group.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:513:5)[39m
+ ⁃ at async SuiteRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1809:7)[39m
+[2/9]─
+
+❯ Error Events Controller / should reject events from inactive projects
+
+- Expected  - 1
++ Received  + 1
+
+- 401
++ 200
+
+[31mℹ AssertionError: expected 200 to equal 401[39m
+
+ ⁃ at Assert.equal [33m(/app/node_modules/.pnpm/@japa+assert@4.0.1_@japa+runner@4.2.0/node_modules/@japa/assert/build/index.js:214:19)[39m
+ ⁃ at ApiResponse.assertStatus [33m(/app/node_modules/.pnpm/@japa+api-client@3.1.0_@japa+assert@4.0.1_@japa+runner@4.2.0__@japa+runner@4.2.0/node_modules/@japa/api-client/build/index.js:364:17)[39m
+ ⁃ at Object.executor [33m(tests/functional/error/error_events_controller.spec.ts:552:14)[39m
+
+   [2m547[22m [2m┃[22m  
+   [2m548[22m [2m┃[22m      [31mconst[0m response [34m=[0m [31mawait[0m client
+   [2m549[22m [2m┃[22m        [34m.[0m[35mpost[0m([32m`/api/[0m[31m${[0minactiveProject[34m.[0mid[31m}[0m[32m/store`[0m)
+   [2m550[22m [2m┃[22m        [34m.[0m[35mjson[0m(errorEventData)
+   [2m551[22m [2m┃[22m  
+ [41m❯ 552 ┃      response.assertStatus(401)[49m
+   [2m553[22m [2m┃[22m  
+   [2m554[22m [2m┃[22m      [90m// Cleanup
+   [2m555[22m [2m┃[22m  [0m    [31mawait[0m inactiveProject[34m.[0m[31mdelete[0m()
+   [2m556[22m [2m┃[22m    })
+   [2m557[22m [2m┃[22m  })
+
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+ ⁃ at async #wrapTestInTimeout [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1054:7)[39m
+ ⁃ at async TestRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1102:7)[39m
+ ⁃ at async Test.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1482:5)[39m
+ ⁃ at async GroupRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:345:7)[39m
+ ⁃ at async Group.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:513:5)[39m
+ ⁃ at async SuiteRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1809:7)[39m
+[3/9]─
+
+❯ ProcessEvent Job / should process event and create error group
+
+[31mℹ TypeError: Cannot destructure property 'eventId' of 'this.data' as it is undefined.[39m
+
+ ⁃ at ProcessEvent.process [33m(app/jobs/process_event.ts:24:13)[39m
+
+   [2m19[22m [2m┃[22m    [31mstatic[0m [31mget[0m [35mconcurrency[0m() {
+   [2m20[22m [2m┃[22m      [31mreturn[0m [33m10[0m [90m// Process up to 10 events concurrently
+   [2m21[22m [2m┃[22m  [0m  }
+   [2m22[22m [2m┃[22m  
+   [2m23[22m [2m┃[22m    [31masync[0m [35mprocess[0m() {
+ [41m❯ 24 ┃      const { eventId, projectId } = this.data[49m
+   [2m25[22m [2m┃[22m      logger[34m.[0m[35minfo[0m([32m`Starting to process event [0m[31m${[0meventId[31m}[0m[32m for project [0m[31m${[0mprojectId[31m}[0m[32m`[0m)
+   [2m26[22m [2m┃[22m  
+   [2m27[22m [2m┃[22m      [31mtry[0m {
+   [2m28[22m [2m┃[22m        [90m// 1. Fetch the raw event from ClickHouse
+   [2m29[22m [2m┃[22m  [0m      logger[34m.[0m[35mdebug[0m([32m`Fetching event [0m[31m${[0meventId[31m}[0m[32m from ClickHouse...`[0m)
+
+ ⁃ at Object.executor [33m(tests/functional/jobs/process_event.spec.ts:60:23)[39m
+ ⁃ at #runTest [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:971:123)[39m
+ ⁃ at #wrapRegressionTest [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1032:87)[39m
+ ⁃ at #wrapTestInTimeout [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1056:33)[39m
+ ⁃ at #wrapTestInRetries [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1067:37)[39m
+ ⁃ at TestRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1102:36)[39m
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+ ⁃ at async Test.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1482:5)[39m
+ ⁃ at async GroupRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:345:7)[39m
+[4/9]─
+
+❯ ProcessEvent Job / should update existing error group on duplicate fingerprint
+
+[31mℹ TypeError: Cannot destructure property 'eventId' of 'this.data' as it is undefined.[39m
+
+ ⁃ at ProcessEvent.process [33m(app/jobs/process_event.ts:24:13)[39m
+
+   [2m19[22m [2m┃[22m    [31mstatic[0m [31mget[0m [35mconcurrency[0m() {
+   [2m20[22m [2m┃[22m      [31mreturn[0m [33m10[0m [90m// Process up to 10 events concurrently
+   [2m21[22m [2m┃[22m  [0m  }
+   [2m22[22m [2m┃[22m  
+   [2m23[22m [2m┃[22m    [31masync[0m [35mprocess[0m() {
+ [41m❯ 24 ┃      const { eventId, projectId } = this.data[49m
+   [2m25[22m [2m┃[22m      logger[34m.[0m[35minfo[0m([32m`Starting to process event [0m[31m${[0meventId[31m}[0m[32m for project [0m[31m${[0mprojectId[31m}[0m[32m`[0m)
+   [2m26[22m [2m┃[22m  
+   [2m27[22m [2m┃[22m      [31mtry[0m {
+   [2m28[22m [2m┃[22m        [90m// 1. Fetch the raw event from ClickHouse
+   [2m29[22m [2m┃[22m  [0m      logger[34m.[0m[35mdebug[0m([32m`Fetching event [0m[31m${[0meventId[31m}[0m[32m from ClickHouse...`[0m)
+
+ ⁃ at Object.executor [33m(tests/functional/jobs/process_event.spec.ts:123:23)[39m
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+ ⁃ at async #wrapTestInTimeout [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1054:7)[39m
+ ⁃ at async TestRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1102:7)[39m
+ ⁃ at async Test.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1482:5)[39m
+ ⁃ at async GroupRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:345:7)[39m
+ ⁃ at async Group.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:513:5)[39m
+ ⁃ at async SuiteRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1809:7)[39m
+ ⁃ at async Suite.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1936:5)[39m
+[5/9]─
+
+❯ ProcessEvent Job / should handle missing event gracefully
+
+- Expected  - 1
++ Received  + 1
+
+- Event 0ec99164-d187-4549-a148-0ac22143c182 not found
++ Cannot destructure property 'eventId' of 'this.data' as it is undefined.
+
+[31mℹ AssertionError: expected 'Cannot destructure property \'eventId…' to equal 'Event 0ec99164-d187-4549-a148-0ac2214…'[39m
+
+ ⁃ at Assert.equal [33m(/app/node_modules/.pnpm/@japa+assert@4.0.1_@japa+runner@4.2.0/node_modules/@japa/assert/build/index.js:214:19)[39m
+ ⁃ at Object.executor [33m(tests/functional/jobs/process_event.spec.ts:152:14)[39m
+
+   [2m147[22m [2m┃[22m            projectId[34m:[0m testProject[34m.[0mid
+   [2m148[22m [2m┃[22m          }
+   [2m149[22m [2m┃[22m        } [31mas[0m any)
+   [2m150[22m [2m┃[22m        assert[34m.[0m[35mfail[0m([32m'Should have thrown error for missing event'[0m)
+   [2m151[22m [2m┃[22m      } [31mcatch[0m (error) {
+ [41m❯ 152 ┃        assert.equal(error.message, `Event ${nonExistentId} not found`)[49m
+   [2m153[22m [2m┃[22m      }
+   [2m154[22m [2m┃[22m    })
+   [2m155[22m [2m┃[22m  
+   [2m156[22m [2m┃[22m    [35mtest[0m([32m'should generate correct fingerprint hash'[0m[34m,[0m [31masync[0m ({ assert }) [31m=>[0m {
+   [2m157[22m [2m┃[22m      [31mconst[0m job [34m=[0m [31mnew[0m [33mProcessEvent[0m()
+
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+[6/9]─
+
+❯ ProcessEvent Job / should update group statistics after processing
+
+[31mℹ TypeError: Cannot destructure property 'eventId' of 'this.data' as it is undefined.[39m
+
+ ⁃ at ProcessEvent.process [33m(app/jobs/process_event.ts:24:13)[39m
+
+   [2m19[22m [2m┃[22m    [31mstatic[0m [31mget[0m [35mconcurrency[0m() {
+   [2m20[22m [2m┃[22m      [31mreturn[0m [33m10[0m [90m// Process up to 10 events concurrently
+   [2m21[22m [2m┃[22m  [0m  }
+   [2m22[22m [2m┃[22m  
+   [2m23[22m [2m┃[22m    [31masync[0m [35mprocess[0m() {
+ [41m❯ 24 ┃      const { eventId, projectId } = this.data[49m
+   [2m25[22m [2m┃[22m      logger[34m.[0m[35minfo[0m([32m`Starting to process event [0m[31m${[0meventId[31m}[0m[32m for project [0m[31m${[0mprojectId[31m}[0m[32m`[0m)
+   [2m26[22m [2m┃[22m  
+   [2m27[22m [2m┃[22m      [31mtry[0m {
+   [2m28[22m [2m┃[22m        [90m// 1. Fetch the raw event from ClickHouse
+   [2m29[22m [2m┃[22m  [0m      logger[34m.[0m[35mdebug[0m([32m`Fetching event [0m[31m${[0meventId[31m}[0m[32m from ClickHouse...`[0m)
+
+ ⁃ at Object.executor [33m(tests/functional/jobs/process_event.spec.ts:225:23)[39m
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+ ⁃ at async #wrapTestInTimeout [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1054:7)[39m
+ ⁃ at async TestRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1102:7)[39m
+ ⁃ at async Test.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1482:5)[39m
+ ⁃ at async GroupRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:345:7)[39m
+ ⁃ at async Group.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:513:5)[39m
+ ⁃ at async SuiteRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1809:7)[39m
+ ⁃ at async Suite.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1936:5)[39m
+[7/9]─
+
+❯ ProcessEvent Job / should handle concurrent processing of same fingerprint
+
+[31mℹ TypeError: Cannot destructure property 'eventId' of 'this.data' as it is undefined.[39m
+
+ ⁃ at ProcessEvent.process [33m(app/jobs/process_event.ts:24:13)[39m
+
+   [2m19[22m [2m┃[22m    [31mstatic[0m [31mget[0m [35mconcurrency[0m() {
+   [2m20[22m [2m┃[22m      [31mreturn[0m [33m10[0m [90m// Process up to 10 events concurrently
+   [2m21[22m [2m┃[22m  [0m  }
+   [2m22[22m [2m┃[22m  
+   [2m23[22m [2m┃[22m    [31masync[0m [35mprocess[0m() {
+ [41m❯ 24 ┃      const { eventId, projectId } = this.data[49m
+   [2m25[22m [2m┃[22m      logger[34m.[0m[35minfo[0m([32m`Starting to process event [0m[31m${[0meventId[31m}[0m[32m for project [0m[31m${[0mprojectId[31m}[0m[32m`[0m)
+   [2m26[22m [2m┃[22m  
+   [2m27[22m [2m┃[22m      [31mtry[0m {
+   [2m28[22m [2m┃[22m        [90m// 1. Fetch the raw event from ClickHouse
+   [2m29[22m [2m┃[22m  [0m      logger[34m.[0m[35mdebug[0m([32m`Fetching event [0m[31m${[0meventId[31m}[0m[32m from ClickHouse...`[0m)
+
+ ⁃ at eventId [33m(tests/functional/jobs/process_event.spec.ts:359:19)[39m
+ ⁃ at Object.executor [33m(tests/functional/jobs/process_event.spec.ts:358:31)[39m
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+ ⁃ at async #wrapTestInTimeout [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1054:7)[39m
+ ⁃ at async TestRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1102:7)[39m
+ ⁃ at async Test.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1482:5)[39m
+ ⁃ at async GroupRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:345:7)[39m
+ ⁃ at async Group.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:513:5)[39m
+[8/9]─
+
+❯ ProcessEvent Job / should mark event as processed
+
+ FAILED 
+
+
+[31mℹ TypeError: Cannot destructure property 'eventId' of 'this.data' as it is undefined.[39m
+
+ ⁃ at ProcessEvent.process [33m(app/jobs/process_event.ts:24:13)[39m
+
+   [2m19[22m [2m┃[22m    [31mstatic[0m [31mget[0m [35mconcurrency[0m() {
+   [2m20[22m [2m┃[22m      [31mreturn[0m [33m10[0m [90m// Process up to 10 events concurrently
+   [2m21[22m [2m┃[22m  [0m  }
+   [2m22[22m [2m┃[22m  
+   [2m23[22m [2m┃[22m    [31masync[0m [35mprocess[0m() {
+ [41m❯ 24 ┃      const { eventId, projectId } = this.data[49m
+   [2m25[22m [2m┃[22m      logger[34m.[0m[35minfo[0m([32m`Starting to process event [0m[31m${[0meventId[31m}[0m[32m for project [0m[31m${[0mprojectId[31m}[0m[32m`[0m)
+   [2m26[22m [2m┃[22m  
+   [2m27[22m [2m┃[22m      [31mtry[0m {
+   [2m28[22m [2m┃[22m        [90m// 1. Fetch the raw event from ClickHouse
+   [2m29[22m [2m┃[22m  [0m      logger[34m.[0m[35mdebug[0m([32m`Fetching event [0m[31m${[0meventId[31m}[0m[32m from ClickHouse...`[0m)
+
+ ⁃ at Object.executor [33m(tests/functional/jobs/process_event.spec.ts:400:23)[39m
+[2m ⁃ at [3mprocess.processTicksAndRejections[23m ([3mnode:internal/process/task_queues:105:5[23m)[22m
+ ⁃ at async #wrapTestInTimeout [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1054:7)[39m
+ ⁃ at async TestRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1102:7)[39m
+ ⁃ at async Test.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1482:5)[39m
+ ⁃ at async GroupRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:345:7)[39m
+ ⁃ at async Group.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:513:5)[39m
+ ⁃ at async SuiteRunner.run [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1809:7)[39m
+ ⁃ at async Suite.exec [33m(/app/node_modules/.pnpm/@japa+core@10.3.0/node_modules/@japa/core/build/index.js:1936:5)[39m
+[9/9]─
+Tests  27 passed, 9 failed, 6 skipped (42)
+ Time  758ms

@@ -1,4 +1,4 @@
-import router from "@adonisjs/core/services/router"
+import router from '@adonisjs/core/services/router'
 
 // Core routes
 router.get('version', () => {

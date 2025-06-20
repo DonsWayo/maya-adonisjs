@@ -31,11 +31,13 @@ test.group('ClickHouse Service', () => {
       session_id: null,
       client_info: null,
       exception: JSON.stringify({
-        values: [{
-          type: 'Error',
-          value: 'Test error message',
-          module: 'test.js'
-        }]
+        values: [
+          {
+            type: 'Error',
+            value: 'Test error message',
+            module: 'test.js',
+          },
+        ],
       }),
       exception_type: 'Error',
       exception_value: 'Test error message',
@@ -55,7 +57,7 @@ test.group('ClickHouse Service', () => {
       group_id: null,
       is_sample: 0,
       sample_rate: 1,
-      has_been_processed: 0
+      has_been_processed: 0,
     }
 
     // Test that the error event object has required fields
@@ -71,7 +73,7 @@ test.group('ClickHouse Service', () => {
   test('should validate error event required fields', async ({ assert }) => {
     const invalidErrorEvent = {
       // Missing required fields
-      id: 'test-id'
+      id: 'test-id',
     } as ErrorEvent
 
     // Test that required fields are properly validated
@@ -93,12 +95,12 @@ test.group('ClickHouse Service', () => {
                 filename: 'main.js',
                 function: 'onClick',
                 lineno: 42,
-                colno: 15
-              }
-            ]
-          }
-        }
-      ]
+                colno: 15,
+              },
+            ],
+          },
+        },
+      ],
     }
 
     const stringifiedJson = JSON.stringify(complexException)
@@ -120,7 +122,7 @@ test.group('ClickHouse Service', () => {
       runtime_version: null,
       transaction: null,
       user_hash: null,
-      session_id: null
+      session_id: null,
     }
 
     // Test that null values are preserved
@@ -140,4 +142,4 @@ test.group('ClickHouse Service', () => {
     assert.equal(fingerprint[0], errorType)
     assert.equal(fingerprint[1], errorMessage)
   })
-}) 
+})

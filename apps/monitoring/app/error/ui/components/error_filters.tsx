@@ -1,18 +1,14 @@
 import React from 'react'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@workspace/ui/components/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { Calendar } from '@workspace/ui/components/calendar'
 import { Search, Filter, Calendar as CalendarIcon, X } from 'lucide-react'
 import { DateTime } from 'luxon'
@@ -30,7 +26,12 @@ interface ErrorFiltersProps {
   environments: string[]
 }
 
-export function ErrorFilters({ filters, onFilterChange, onClearFilters, environments }: ErrorFiltersProps) {
+export function ErrorFilters({
+  filters,
+  onFilterChange,
+  onClearFilters,
+  environments,
+}: ErrorFiltersProps) {
   const formatDate = (date?: Date) => {
     return date ? DateTime.fromJSDate(date).toFormat('LLL dd, yyyy') : ''
   }
@@ -46,11 +47,8 @@ export function ErrorFilters({ filters, onFilterChange, onClearFilters, environm
           onChange={(e) => onFilterChange('search', e.target.value)}
         />
       </div>
-      
-      <Select
-        value={filters.level || ''}
-        onValueChange={(value) => onFilterChange('level', value)}
-      >
+
+      <Select value={filters.level || ''} onValueChange={(value) => onFilterChange('level', value)}>
         <SelectTrigger className="w-[150px]">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4" />
@@ -64,7 +62,7 @@ export function ErrorFilters({ filters, onFilterChange, onClearFilters, environm
           <SelectItem value="info">Info</SelectItem>
         </SelectContent>
       </Select>
-      
+
       <Select
         value={filters.environment || ''}
         onValueChange={(value) => onFilterChange('environment', value)}
@@ -77,12 +75,14 @@ export function ErrorFilters({ filters, onFilterChange, onClearFilters, environm
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="">All Environments</SelectItem>
-          {environments.map(env => (
-            <SelectItem key={env} value={env}>{env}</SelectItem>
+          {environments.map((env) => (
+            <SelectItem key={env} value={env}>
+              {env}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      
+
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
@@ -90,11 +90,10 @@ export function ErrorFilters({ filters, onFilterChange, onClearFilters, environm
             {filters.startDate && filters.endDate
               ? `${formatDate(filters.startDate)} - ${formatDate(filters.endDate)}`
               : filters.startDate
-              ? `From ${formatDate(filters.startDate)}`
-              : filters.endDate
-              ? `Until ${formatDate(filters.endDate)}`
-              : "Date Range"
-            }
+                ? `From ${formatDate(filters.startDate)}`
+                : filters.endDate
+                  ? `Until ${formatDate(filters.endDate)}`
+                  : 'Date Range'}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -114,8 +113,12 @@ export function ErrorFilters({ filters, onFilterChange, onClearFilters, environm
           />
         </PopoverContent>
       </Popover>
-      
-      {(filters.search || filters.level || filters.environment || filters.startDate || filters.endDate) && (
+
+      {(filters.search ||
+        filters.level ||
+        filters.environment ||
+        filters.startDate ||
+        filters.endDate) && (
         <Button variant="ghost" size="icon" onClick={onClearFilters}>
           <X className="h-4 w-4" />
         </Button>

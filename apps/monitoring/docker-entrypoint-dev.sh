@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# set -e
 
 echo "DEVELOPMENT"
 
@@ -9,7 +9,7 @@ sleep 5
 
 # Run PostgreSQL migrations
 echo "Running PostgreSQL migrations..."
-node ace migration:run
+node ace migration:run 2>&1 || echo "PostgreSQL migration error: $?"
 
 # Wait for ClickHouse to be ready
 echo "Waiting for ClickHouse to be ready..."

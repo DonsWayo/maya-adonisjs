@@ -3,22 +3,28 @@
 import { Head } from '@inertiajs/react'
 import AppLayout from '#common/ui/components/app_layout'
 import { Button } from '@workspace/ui/components/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@workspace/ui/components/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card'
 import { Badge } from '@workspace/ui/components/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@workspace/ui/components/tabs'
 import { Edit, Trash2, AlertCircle, BarChart2, Code, Copy, ExternalLink } from 'lucide-react'
 import { DateTime } from 'luxon'
 import ProjectDto from '#error/dtos/project_dto'
 import { getPlatformBadgeColor, getStatusBadgeColor } from '#error/ui/components/error_types'
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@workspace/ui/components/alert-dialog'
 import { useState } from 'react'
 
@@ -52,7 +58,7 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
   return (
     <AppLayout>
       <Head title={`${project.name} | Project Details`} />
-      
+
       <div className="container mx-auto py-6">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -69,7 +75,7 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
               <p className="text-muted-foreground mt-1">{project.description}</p>
             )}
           </div>
-          
+
           <div className="flex space-x-2">
             <Button variant="outline" asChild>
               <a href={`/projects/${project.id}/edit`}>
@@ -120,14 +126,12 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="keys">API Keys</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="overview" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Error Events</CardTitle>
-                <CardDescription>
-                  View and manage error events for this project
-                </CardDescription>
+                <CardDescription>View and manage error events for this project</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
@@ -141,13 +145,11 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Analytics</CardTitle>
-                <CardDescription>
-                  Error trends and statistics
-                </CardDescription>
+                <CardDescription>Error trends and statistics</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
@@ -162,14 +164,12 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="settings">
             <Card>
               <CardHeader>
                 <CardTitle>Project Settings</CardTitle>
-                <CardDescription>
-                  Basic information about this project
-                </CardDescription>
+                <CardDescription>Basic information about this project</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -183,14 +183,22 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Created</h3>
-                    <p>{typeof project.createdAt === 'string' ? DateTime.fromISO(project.createdAt).toRelative() : DateTime.fromJSDate(project.createdAt as Date).toRelative()}</p>
+                    <p>
+                      {typeof project.createdAt === 'string'
+                        ? DateTime.fromISO(project.createdAt).toRelative()
+                        : DateTime.fromJSDate(project.createdAt as Date).toRelative()}
+                    </p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Last Updated</h3>
-                    <p>{typeof project.updatedAt === 'string' ? DateTime.fromISO(project.updatedAt).toRelative() : DateTime.fromJSDate(project.updatedAt as Date).toRelative()}</p>
+                    <p>
+                      {typeof project.updatedAt === 'string'
+                        ? DateTime.fromISO(project.updatedAt).toRelative()
+                        : DateTime.fromJSDate(project.updatedAt as Date).toRelative()}
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="pt-4">
                   <Button asChild>
                     <a href={`/projects/${project.id}/edit`}>
@@ -202,14 +210,12 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="keys">
             <Card>
               <CardHeader>
                 <CardTitle>API Keys</CardTitle>
-                <CardDescription>
-                  Authentication keys for this project
-                </CardDescription>
+                <CardDescription>Authentication keys for this project</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
@@ -220,9 +226,7 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
                     </code>
                     <Button variant="ghost" size="sm" onClick={copyDsn} className="ml-2">
                       {copied ? (
-                        <span className="text-green-500 flex items-center">
-                          Copied!
-                        </span>
+                        <span className="text-green-500 flex items-center">Copied!</span>
                       ) : (
                         <Copy className="h-4 w-4" />
                       )}
@@ -232,14 +236,14 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
                     Use this DSN to configure your SDK client.
                   </p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium mb-2">Public Key</h3>
                   <code className="bg-muted p-2 rounded block overflow-x-auto">
                     {project.publicKey}
                   </code>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium mb-2">Secret Key</h3>
                   <div className="bg-muted p-2 rounded">
@@ -255,7 +259,7 @@ export default function ProjectShow({ project, stats }: ProjectShowProps) {
                     Keep this key secret. It provides full access to this project.
                   </p>
                 </div>
-                
+
                 <div className="pt-4">
                   <h3 className="text-sm font-medium mb-2">SDK Setup</h3>
                   <div className="bg-muted p-4 rounded">
@@ -275,22 +279,23 @@ Sentry.init({
             </Card>
           </TabsContent>
         </Tabs>
-        
+
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the project "{project.name}" and all its associated error data. This action cannot be undone.
+                This will permanently delete the project "{project.name}" and all its associated
+                error data. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction asChild>
-                <a 
-                  href={`/projects/${project.id}`} 
-                  method="delete" 
-                  as="button" 
+                <a
+                  href={`/projects/${project.id}`}
+                  method="delete"
+                  as="button"
                   className="bg-red-600 hover:bg-red-700"
                 >
                   Delete

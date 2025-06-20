@@ -41,6 +41,6 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ['web', 'localhost', '127.0.0.1'],
     }
   }
-  
+
   return config
 })

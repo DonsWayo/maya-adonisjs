@@ -68,14 +68,14 @@ export default class CreateErrorEventsTable {
           is_sample UInt8 DEFAULT 0,            -- Whether this is a sample event (for rate limiting)
           sample_rate Float32 DEFAULT 1.0,       -- Sample rate applied
           has_been_processed UInt8 DEFAULT 0    -- Whether this event has been processed
-        ) ENGINE = MergeTree() ORDER BY (timestamp, project_id, id) PARTITION BY toYYYYMM(timestamp) TTL timestamp + INTERVAL 1 YEAR`
+        ) ENGINE = MergeTree() ORDER BY (timestamp, project_id, id) PARTITION BY toYYYYMM(timestamp) TTL timestamp + INTERVAL 1 YEAR`,
     })
   }
 
   public async down() {
     // Drop the error_events table
     await clickhouse.query({
-      query: 'DROP TABLE IF EXISTS error_events;'
+      query: 'DROP TABLE IF EXISTS error_events;',
     })
   }
 }

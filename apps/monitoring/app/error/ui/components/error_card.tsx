@@ -1,5 +1,11 @@
 import React from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@workspace/ui/components/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import { AlertCircle, ExternalLink } from 'lucide-react'
@@ -32,9 +38,14 @@ export function ErrorCard({ error, onViewDetails }: ErrorCardProps) {
             </CardDescription>
           </div>
           <div className="flex items-center space-x-2">
-            <Badge 
-              variant={error.level === 'error' ? 'destructive' : 
-                     error.level === 'warning' ? 'warning' : 'default'}
+            <Badge
+              variant={
+                error.level === 'error'
+                  ? 'destructive'
+                  : error.level === 'warning'
+                    ? 'warning'
+                    : 'default'
+              }
             >
               {error.level}
             </Badge>
@@ -46,9 +57,9 @@ export function ErrorCard({ error, onViewDetails }: ErrorCardProps) {
         <p className="text-sm mb-4 break-words">{error.message}</p>
         {onViewDetails && (
           <div className="flex justify-end">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => onViewDetails(error.id)}
               className="flex items-center gap-1"
             >

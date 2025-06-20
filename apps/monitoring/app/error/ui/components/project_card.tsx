@@ -1,5 +1,11 @@
 import React from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@workspace/ui/components/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import { Edit, ExternalLink } from 'lucide-react'
@@ -35,23 +41,21 @@ export function ProjectCard({ project, onView, onEdit }: ProjectCardProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {project.description && (
-          <p className="text-sm mb-4">{project.description}</p>
-        )}
-        
+        {project.description && <p className="text-sm mb-4">{project.description}</p>}
+
         {project.error_count !== undefined && (
           <div className="mb-4">
-            <Badge variant={project.error_count > 0 ? "destructive" : "success"}>
+            <Badge variant={project.error_count > 0 ? 'destructive' : 'success'}>
               {project.error_count} {project.error_count === 1 ? 'error' : 'errors'}
             </Badge>
           </div>
         )}
-        
+
         <div className="flex justify-end space-x-2">
           {onEdit && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => onEdit(project.id)}
               className="flex items-center gap-1"
             >
@@ -59,11 +63,11 @@ export function ProjectCard({ project, onView, onEdit }: ProjectCardProps) {
               Edit
             </Button>
           )}
-          
+
           {onView && (
-            <Button 
-              variant="default" 
-              size="sm" 
+            <Button
+              variant="default"
+              size="sm"
               onClick={() => onView(project.id)}
               className="flex items-center gap-1"
             >

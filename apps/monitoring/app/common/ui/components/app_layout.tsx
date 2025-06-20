@@ -10,7 +10,7 @@ import AbilityProvider from '#common/ui/context/abilities_context'
 
 import { ThemeProvider } from '@workspace/ui/components/theme-provider'
 import { Toaster } from '@workspace/ui/components/sonner'
-import { LogOut, Settings, Users, Building } from 'lucide-react'
+import { LogOut, Settings, Users, Building, FolderOpen, AlertCircle, BarChart3, Home } from 'lucide-react'
 
 interface BreadcrumbItemProps {
   label: string
@@ -24,8 +24,32 @@ interface AppLayoutProps extends React.PropsWithChildren {
 
 const navMain: NavMainItem[] = [
   {
-    title: 'Dashboard',
-    url: '/dashboard',
+    title: 'Home',
+    url: '/',
+    icon: Home,
+  },
+  {
+    title: 'Error Monitoring',
+    items: [
+      {
+        title: 'Projects',
+        url: '/projects',
+        icon: FolderOpen,
+        subject: 'projects',
+      },
+      {
+        title: 'All Errors',
+        url: '/errors',
+        icon: AlertCircle,
+        subject: 'errors',
+      },
+      {
+        title: 'Analytics',
+        url: '/analytics',
+        icon: BarChart3,
+        subject: 'analytics',
+      },
+    ],
   },
   {
     title: 'Administration',

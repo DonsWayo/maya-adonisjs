@@ -9,6 +9,7 @@
 |
 */
 
+
 import { Env } from '@adonisjs/core/env'
 
 export default await Env.create(new URL('../', import.meta.url), {
@@ -86,5 +87,10 @@ export default await Env.create(new URL('../', import.meta.url), {
   CLICKHOUSE_DB: Env.schema.string.optional(),
   CLICKHOUSE_REQUEST_TIMEOUT: Env.schema.number.optional(),
   CLICKHOUSE_COMPRESSION_REQUEST: Env.schema.boolean.optional(),
-  CLICKHOUSE_COMPRESSION_RESPONSE: Env.schema.boolean.optional()
+  CLICKHOUSE_COMPRESSION_RESPONSE: Env.schema.boolean.optional(),
+
+  REDIS_HOST: Env.schema.string({ format: 'host' }),
+  REDIS_PORT: Env.schema.number(),
+  REDIS_PASSWORD: Env.schema.string.optional(),
+  QUEUE_PORT: Env.schema.number(),
 })

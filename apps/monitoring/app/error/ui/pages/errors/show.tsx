@@ -10,12 +10,12 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from "@workspace/ui/components/breadcrumb"
+} from '@workspace/ui/components/breadcrumb'
 import { Button } from '@workspace/ui/components/button'
 import { Badge } from '@workspace/ui/components/badge'
-import { 
-  ChevronLeft, 
-  ChevronDown, 
+import {
+  ChevronLeft,
+  ChevronDown,
   ChevronRight,
   AlertCircle,
   Clock,
@@ -26,7 +26,7 @@ import {
   Code,
   Layers,
   Copy,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react'
 import {
   Card,
@@ -35,12 +35,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@workspace/ui/components/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@workspace/ui/components/tabs'
 import {
   Accordion,
   AccordionContent,
@@ -163,23 +158,19 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
     }
 
     const frames = [...event.exception.values[0].stacktrace.frames].reverse()
-    
+
     return (
       <div className="font-mono text-xs overflow-x-auto">
         {frames.map((frame, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className={`py-1 ${frame.in_app ? 'text-red-600' : 'text-muted-foreground'}`}
           >
             <div className="flex items-start">
-              <div className="w-8 text-right mr-2 text-muted-foreground">
-                {index + 1}.
-              </div>
+              <div className="w-8 text-right mr-2 text-muted-foreground">{index + 1}.</div>
               <div>
                 <div>
-                  {frame.function && (
-                    <span className="font-semibold">{frame.function}</span>
-                  )}
+                  {frame.function && <span className="font-semibold">{frame.function}</span>}
                   {frame.function && ' in '}
                   <span>{frame.filename}</span>
                   {(frame.lineno || frame.colno) && (
@@ -207,7 +198,7 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
   return (
     <AppLayout>
       <Head title={`Error Details | ${project.name}`} />
-      
+
       <div className="container mx-auto py-6">
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
@@ -232,17 +223,11 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
         <div className="flex justify-between items-start mb-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Badge className={getLevelBadgeColor(event.level)}>
-                {event.level}
-              </Badge>
+              <Badge className={getLevelBadgeColor(event.level)}>{event.level}</Badge>
               <Badge className={getEnvironmentBadgeColor(event.environment)}>
                 {event.environment}
               </Badge>
-              {event.release && (
-                <Badge variant="outline">
-                  Release: {event.release}
-                </Badge>
-              )}
+              {event.release && <Badge variant="outline">Release: {event.release}</Badge>}
             </div>
             <h1 className="text-2xl font-bold mb-1">{event.message}</h1>
             <div className="text-muted-foreground flex items-center gap-4">
@@ -258,7 +243,7 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
               </div>
             </div>
           </div>
-          
+
           <div className="flex space-x-2">
             <Button variant="outline" asChild>
               <a href={`/projects/${project.id}/errors`}>
@@ -289,14 +274,12 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
             <TabsTrigger value="user">User</TabsTrigger>
             <TabsTrigger value="context">Context</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="exception" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Exception Details</CardTitle>
-                <CardDescription>
-                  Stack trace and error information
-                </CardDescription>
+                <CardDescription>Stack trace and error information</CardDescription>
               </CardHeader>
               <CardContent>
                 {event.exception ? (
@@ -321,37 +304,36 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                     ))}
                   </div>
                 ) : (
-                  <div className="text-muted-foreground">
-                    No exception details available
-                  </div>
+                  <div className="text-muted-foreground">No exception details available</div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="breadcrumbs" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Breadcrumbs</CardTitle>
-                <CardDescription>
-                  Event history leading up to the error
-                </CardDescription>
+                <CardDescription>Event history leading up to the error</CardDescription>
               </CardHeader>
               <CardContent>
                 {event.breadcrumbs && event.breadcrumbs.length > 0 ? (
                   <div className="space-y-2">
                     {event.breadcrumbs.map((breadcrumb, index) => (
-                      <div key={index} className="flex items-start border-l-2 border-gray-300 pl-4 pb-4">
+                      <div
+                        key={index}
+                        className="flex items-start border-l-2 border-gray-300 pl-4 pb-4"
+                      >
                         <div className="mr-4 min-w-[120px]">
                           <div className="text-xs text-muted-foreground">
                             {new Date(
-                              typeof breadcrumb.timestamp === 'string' 
-                                ? breadcrumb.timestamp 
+                              typeof breadcrumb.timestamp === 'string'
+                                ? breadcrumb.timestamp
                                 : Number(breadcrumb.timestamp)
                             ).toLocaleTimeString()}
                           </div>
                           {breadcrumb.level && (
-                            <Badge 
+                            <Badge
                               className={`mt-1 ${getLevelBadgeColor(breadcrumb.level)}`}
                               variant="secondary"
                             >
@@ -378,21 +360,17 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                     ))}
                   </div>
                 ) : (
-                  <div className="text-muted-foreground">
-                    No breadcrumbs available
-                  </div>
+                  <div className="text-muted-foreground">No breadcrumbs available</div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="request" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Request Information</CardTitle>
-                <CardDescription>
-                  HTTP request details at the time of the error
-                </CardDescription>
+                <CardDescription>HTTP request details at the time of the error</CardDescription>
               </CardHeader>
               <CardContent>
                 {event.request && Object.keys(event.request).length > 0 ? (
@@ -400,21 +378,17 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                     {event.request.url && (
                       <div>
                         <div className="text-sm font-medium mb-1">URL</div>
-                        <div className="break-all bg-muted p-2 rounded">
-                          {event.request.url}
-                        </div>
+                        <div className="break-all bg-muted p-2 rounded">{event.request.url}</div>
                       </div>
                     )}
-                    
+
                     {event.request.method && (
                       <div>
                         <div className="text-sm font-medium mb-1">Method</div>
-                        <Badge variant="outline">
-                          {event.request.method}
-                        </Badge>
+                        <Badge variant="outline">{event.request.method}</Badge>
                       </div>
                     )}
-                    
+
                     {event.request.headers && (
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="headers">
@@ -431,7 +405,7 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                         </AccordionItem>
                       </Accordion>
                     )}
-                    
+
                     {event.request.data && (
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="data">
@@ -450,21 +424,17 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                     )}
                   </div>
                 ) : (
-                  <div className="text-muted-foreground">
-                    No request information available
-                  </div>
+                  <div className="text-muted-foreground">No request information available</div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="user" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>User Information</CardTitle>
-                <CardDescription>
-                  Details about the user at the time of the error
-                </CardDescription>
+                <CardDescription>Details about the user at the time of the error</CardDescription>
               </CardHeader>
               <CardContent>
                 {event.user && Object.keys(event.user).length > 0 ? (
@@ -476,21 +446,21 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                           <div className="break-all">{event.user.id}</div>
                         </div>
                       )}
-                      
+
                       {event.user.username && (
                         <div>
                           <div className="text-sm font-medium mb-1">Username</div>
                           <div>{event.user.username}</div>
                         </div>
                       )}
-                      
+
                       {event.user.email && (
                         <div>
                           <div className="text-sm font-medium mb-1">Email</div>
                           <div>{event.user.email}</div>
                         </div>
                       )}
-                      
+
                       {event.user.ip_address && (
                         <div>
                           <div className="text-sm font-medium mb-1">IP Address</div>
@@ -498,7 +468,7 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                         </div>
                       )}
                     </div>
-                    
+
                     <Accordion type="single" collapsible className="w-full">
                       <AccordionItem value="user-data">
                         <AccordionTrigger className="text-sm font-medium">
@@ -515,14 +485,12 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                     </Accordion>
                   </div>
                 ) : (
-                  <div className="text-muted-foreground">
-                    No user information available
-                  </div>
+                  <div className="text-muted-foreground">No user information available</div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="context" className="space-y-4">
             <Card>
               <CardHeader>
@@ -542,7 +510,9 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">SDK</div>
-                        <div>{sdkInfo.name} {sdkInfo.version}</div>
+                        <div>
+                          {sdkInfo.name} {sdkInfo.version}
+                        </div>
                       </div>
                       {event.serverName && (
                         <div>
@@ -558,7 +528,7 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                       )}
                     </div>
                   </div>
-                  
+
                   {event.tags && Object.keys(event.tags).length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium mb-2">Tags</h3>
@@ -571,7 +541,7 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                       </div>
                     </div>
                   )}
-                  
+
                   {event.contexts && Object.keys(event.contexts).length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium mb-2">Contexts</h3>
@@ -593,7 +563,7 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                       </Accordion>
                     </div>
                   )}
-                  
+
                   {event.extra && Object.keys(event.extra).length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium mb-2">Extra Data</h3>
@@ -604,7 +574,7 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                       </div>
                     </div>
                   )}
-                  
+
                   {event.fingerprint && event.fingerprint.length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium mb-2">Fingerprint</h3>

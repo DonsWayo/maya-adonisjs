@@ -6,7 +6,12 @@ import vine from '@vinejs/vine'
 export const createProjectValidator = vine.compile(
   vine.object({
     name: vine.string().trim().minLength(3).maxLength(255),
-    slug: vine.string().trim().minLength(3).maxLength(100).regex(/^[a-z0-9-]+$/),
+    slug: vine
+      .string()
+      .trim()
+      .minLength(3)
+      .maxLength(100)
+      .regex(/^[a-z0-9-]+$/),
     platform: vine.string().trim(),
     description: vine.string().trim().nullable(),
     organizationId: vine.string().trim().nullable(),
@@ -20,7 +25,13 @@ export const createProjectValidator = vine.compile(
 export const updateProjectValidator = vine.compile(
   vine.object({
     name: vine.string().trim().minLength(3).maxLength(255).optional(),
-    slug: vine.string().trim().minLength(3).maxLength(100).regex(/^[a-z0-9-]+$/).optional(),
+    slug: vine
+      .string()
+      .trim()
+      .minLength(3)
+      .maxLength(100)
+      .regex(/^[a-z0-9-]+$/)
+      .optional(),
     platform: vine.string().trim().optional(),
     status: vine.string().trim().optional(),
     description: vine.string().trim().nullable().optional(),
@@ -53,19 +64,25 @@ export const storeErrorEventValidator = vine.compile(
     breadcrumbs: vine.array(vine.object({})).optional(),
     contexts: vine.object({}).optional(),
     request: vine.object({}).optional(),
-    sdk: vine.object({
-      name: vine.string().optional(),
-      version: vine.string().optional(),
-    }).optional(),
-    exception: vine.object({
-      values: vine.array(
-        vine.object({
-          type: vine.string(),
-          value: vine.string(),
-          module: vine.string().optional(),
-          stacktrace: vine.object({}).optional(),
-        })
-      ).optional(),
-    }).optional(),
+    sdk: vine
+      .object({
+        name: vine.string().optional(),
+        version: vine.string().optional(),
+      })
+      .optional(),
+    exception: vine
+      .object({
+        values: vine
+          .array(
+            vine.object({
+              type: vine.string(),
+              value: vine.string(),
+              module: vine.string().optional(),
+              stacktrace: vine.object({}).optional(),
+            })
+          )
+          .optional(),
+      })
+      .optional(),
   })
 )

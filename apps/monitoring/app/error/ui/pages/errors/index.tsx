@@ -14,13 +14,7 @@ import {
 } from '@workspace/ui/components/table'
 import { Button } from '@workspace/ui/components/button'
 import { Badge } from '@workspace/ui/components/badge'
-import { 
-  ChevronLeft, 
-  ChevronRight,
-  Clock,
-  ExternalLink,
-  Filter
-} from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, ExternalLink, Filter } from 'lucide-react'
 import { DateTime } from 'luxon'
 import {
   Card,
@@ -84,13 +78,13 @@ interface ErrorEventsIndexProps {
   pagination: Pagination
 }
 
-export default function ErrorEventsIndex({ 
-  project, 
-  events, 
-  eventCounts, 
+export default function ErrorEventsIndex({
+  project,
+  events,
+  eventCounts,
   topErrorTypes,
   filters: initialFilters,
-  pagination: initialPagination
+  pagination: initialPagination,
 }: ErrorEventsIndexProps) {
   const [searchTerm, setSearchTerm] = useState(initialFilters.search || '')
   const [level, setLevel] = useState(initialFilters.level || '')
@@ -105,14 +99,14 @@ export default function ErrorEventsIndex({
 
   const applyFilters = () => {
     const queryParams = new URLSearchParams()
-    
+
     if (searchTerm) queryParams.set('search', searchTerm)
     if (level) queryParams.set('level', level)
     if (environment) queryParams.set('environment', environment)
     if (startDate) queryParams.set('startDate', startDate.toISOString())
     if (endDate) queryParams.set('endDate', endDate.toISOString())
     if (page > 1) queryParams.set('page', page.toString())
-    
+
     window.location.href = `/projects/${project.id}/errors?${queryParams.toString()}`
   }
 
@@ -123,7 +117,7 @@ export default function ErrorEventsIndex({
     setStartDate(undefined)
     setEndDate(undefined)
     setPage(1)
-    
+
     window.location.href = `/projects/${project.id}/errors`
   }
 
@@ -133,7 +127,7 @@ export default function ErrorEventsIndex({
     window.location.href = `/projects/${project.id}/errors?${queryParams.toString()}`
   }
 
-  const getLevelBadgeVariant = (level: string): "default" | "destructive" | "outline" => {
+  const getLevelBadgeVariant = (level: string): 'default' | 'destructive' | 'outline' => {
     switch (level.toLowerCase()) {
       case 'error':
         return 'destructive'
@@ -144,7 +138,7 @@ export default function ErrorEventsIndex({
     }
   }
 
-  const getEnvironmentBadgeVariant = (env: string): "default" | "destructive" | "outline" => {
+  const getEnvironmentBadgeVariant = (env: string): 'default' | 'destructive' | 'outline' => {
     switch (env.toLowerCase()) {
       case 'production':
         return 'destructive'
@@ -166,37 +160,35 @@ export default function ErrorEventsIndex({
               <p className="text-muted-foreground">View and filter error events for this project</p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle>Recent Errors</CardTitle>
-                <CardDescription>
-                  Latest error events for this project
-                </CardDescription>
+                <CardDescription>Latest error events for this project</CardDescription>
               </CardHeader>
               <CardContent>
-                <ErrorFilters 
+                <ErrorFilters
                   filters={{
                     search: searchTerm,
                     level,
                     environment,
                     startDate,
-                    endDate
+                    endDate,
                   }}
                   onFilterChange={(name, value) => {
-                    if (name === 'search') setSearchTerm(value);
-                    else if (name === 'level') setLevel(value);
-                    else if (name === 'environment') setEnvironment(value);
+                    if (name === 'search') setSearchTerm(value)
+                    else if (name === 'level') setLevel(value)
+                    else if (name === 'environment') setEnvironment(value)
                     else if (name === 'dateRange') {
-                      setStartDate(value.startDate);
-                      setEndDate(value.endDate);
+                      setStartDate(value.startDate)
+                      setEndDate(value.endDate)
                     }
                   }}
                   onClearFilters={resetFilters}
                   environments={['production', 'staging', 'development']}
                 />
-                
+
                 <div className="flex justify-end space-x-2 mb-4">
                   <Button onClick={applyFilters}>
                     <Filter className="mr-2 h-4 w-4" />
@@ -234,9 +226,7 @@ export default function ErrorEventsIndex({
                             <TableCell className="font-medium max-w-md truncate">
                               {event.message}
                             </TableCell>
-                            <TableCell className="max-w-xs truncate">
-                              {event.type}
-                            </TableCell>
+                            <TableCell className="max-w-xs truncate">{event.type}</TableCell>
                             <TableCell>
                               <Badge variant={getEnvironmentBadgeVariant(event.environment)}>
                                 {event.environment}
@@ -245,7 +235,11 @@ export default function ErrorEventsIndex({
                             <TableCell>
                               <div className="flex items-center">
                                 <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
-                                <span title={DateTime.fromISO(event.timestamp).toFormat('LLL dd, yyyy HH:mm:ss')}>
+                                <span
+                                  title={DateTime.fromISO(event.timestamp).toFormat(
+                                    'LLL dd, yyyy HH:mm:ss'
+                                  )}
+                                >
                                   {DateTime.fromISO(event.timestamp).toRelative()}
                                 </span>
                               </div>
@@ -264,7 +258,7 @@ export default function ErrorEventsIndex({
                     </TableBody>
                   </Table>
                 </div>
-                
+
                 {events.length > 0 && (
                   <div className="flex items-center justify-end space-x-2 mt-4">
                     <Button
@@ -276,9 +270,7 @@ export default function ErrorEventsIndex({
                       <ChevronLeft className="h-4 w-4" />
                       <span className="sr-only">Previous page</span>
                     </Button>
-                    <div className="text-sm text-muted-foreground">
-                      Page {page}
-                    </div>
+                    <div className="text-sm text-muted-foreground">Page {page}</div>
                     <Button
                       variant="outline"
                       size="sm"
@@ -300,7 +292,7 @@ export default function ErrorEventsIndex({
                   <CardDescription>Distribution</CardDescription>
                 </CardHeader>
                 <CardContent className="flex gap-2 flex-wrap">
-                  {Array.from(new Set(events.map(e => e.level))).map(level => (
+                  {Array.from(new Set(events.map((e) => e.level))).map((level) => (
                     <Badge key={level} variant={getLevelBadgeVariant(level)}>
                       {level}
                     </Badge>
@@ -317,7 +309,7 @@ export default function ErrorEventsIndex({
                   <CardDescription>Distribution</CardDescription>
                 </CardHeader>
                 <CardContent className="flex gap-2 flex-wrap">
-                  {Array.from(new Set(events.map(e => e.environment))).map(env => (
+                  {Array.from(new Set(events.map((e) => e.environment))).map((env) => (
                     <Badge key={env} variant={getEnvironmentBadgeVariant(env)}>
                       {env}
                     </Badge>
