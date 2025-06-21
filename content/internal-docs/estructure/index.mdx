@@ -1,0 +1,95 @@
+---
+title: Internal Documentation
+description: Comprehensive internal documentation for the Maya AdonisJS project
+---
+
+# Internal Documentation
+
+This section contains internal documentation for the Maya AdonisJS project, covering architecture patterns, development workflows, and best practices specific to our monorepo ecosystem.
+
+## Architecture & Patterns
+
+<Cards>
+  <Card
+    href="/internal-docs/project-architecture"
+    title="Project Architecture"
+    description="Overview of the Maya AdonisJS monorepo structure and multi-app ecosystem design"
+  />
+  <Card
+    href="/internal-docs/multi-app-ecosystem"
+    title="Multi-App Ecosystem"
+    description="How our apps communicate and share data in the control plane architecture"
+  />
+  <Card
+    href="/internal-docs/shared-entities" 
+    title="Shared Entities"
+    description="Core entities managed by the main app and consumed by other apps"
+  />
+</Cards>
+
+## Development Patterns
+
+<Cards>
+  <Card
+    href="/internal-docs/adonisjs-patterns"
+    title="AdonisJS Patterns"
+    description="Best practices for controllers, models, services, and validation in AdonisJS"
+  />
+  <Card
+    href="/internal-docs/react-inertia-patterns"
+    title="React & Inertia.js Patterns"
+    description="Frontend development patterns using React 19 with Inertia.js"
+  />
+  <Card
+    href="/internal-docs/ui-components"
+    title="UI Components"
+    description="Shared UI component library patterns with Shadcn/UI"
+  />
+</Cards>
+
+## Infrastructure & Tooling
+
+<Cards>
+  <Card
+    href="/internal-docs/monorepo-workspace"
+    title="Monorepo Management"
+    description="pnpm workspaces and TurboRepo configuration and workflows"
+  />
+  <Card
+    href="/internal-docs/docker-development"
+    title="Docker Development"
+    description="Containerized development environment with Docker Compose"
+  />
+  <Card
+    href="/internal-docs/database-ai-integration"
+    title="Database & AI Integration"
+    description="PostgreSQL with TimescaleDB, PgAI, and ClickHouse analytics"
+  />
+  <Card
+    href="/internal-docs/testing-patterns"
+    title="Testing Patterns"
+    description="Comprehensive testing strategies with Japa test runner"
+  />
+</Cards>
+
+## Quick Start
+
+For new developers joining the project:
+
+1. **Environment Setup**: Start with [Docker Development](/internal-docs/docker-development)
+2. **Project Overview**: Read [Project Architecture](/internal-docs/project-architecture)
+3. **Development Patterns**: Review [AdonisJS Patterns](/internal-docs/adonisjs-patterns)
+4. **Frontend Development**: Study [React & Inertia Patterns](/internal-docs/react-inertia-patterns)
+
+## Contributing
+
+When adding new features or apps to the ecosystem:
+
+- Follow the established [Multi-App Ecosystem](/internal-docs/multi-app-ecosystem) patterns
+- Use the shared [UI Components](/internal-docs/ui-components) library
+- Leverage [Shared Entities](/internal-docs/shared-entities) from the main app
+- Integrate with the [Database & AI](/internal-docs/database-ai-integration) infrastructure
+
+## Support
+
+For questions about these patterns or architecture decisions, reach out to the core development team or create an issue in the project repository. 

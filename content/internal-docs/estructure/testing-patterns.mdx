@@ -1,0 +1,557 @@
+---
+title: Testing Patterns
+description: Comprehensive guide to testing patterns and practices in the Maya ecosystem
+---
+
+# Testing Patterns
+
+This guide covers the testing infrastructure, patterns, and best practices used across the Maya monorepo ecosystem.
+
+## Overview
+
+The Maya ecosystem uses the Japa test runner for all testing needs. Japa is a powerful, TypeScript-first testing framework that integrates seamlessly with AdonisJS.
+
+## Test Infrastructure
+
+### Test Runner Configuration
+
+Each application in the monorepo has its own test configuration in `adonisrc.ts`:
+
+```typescript
+// apps/monitoring/adonisrc.ts
+export default defineConfig({
+  tests: {
+    suites: [
+      {
+        name: 'unit',
+        files: ['tests/unit/**/*.spec(.ts|.js)'],
+        timeout: 2000,
+      },
+      {
+        name: 'functional',
+        files: ['tests/functional/**/*.spec(.ts|.js)'],
+        timeout: 30000,
+      },
+    ],
+    forceExit: true,
+  },
+})
+```
+
+### Test Bootstrap
+
+The test bootstrap file (`tests/bootstrap.ts`) sets up the testing environment:
+
+```typescript
+import { assert } from '@japa/assert'
+import { apiClient } from '@japa/api-client'
+import { pluginAdonisJS } from '@japa/plugin-adonisjs'
+import { configure, processCliArgs, run } from '@japa/runner'
+import { TestUtils } from '@adonisjs/core/ace'
+import Redis from 'ioredis'
+
+const testUtils = new TestUtils()
+
+export const runnerHooks: Required<Pick<Config, 'setup' | 'teardown'>> = {
+  setup: [
+    async () => {
+      // Clear Redis test database
+      try {
+        const redisClient = new Redis({
+          host: process.env.REDIS_HOST || '127.0.0.1',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+          password: process.env.REDIS_PASSWORD || undefined,
+          db: parseInt(process.env.REDIS_DB || '15'),
+        })
+        await redisClient.flushdb()
+        await redisClient.quit()
+        console.log('Redis test database cleared')
+      } catch (error) {
+        console.error('Error clearing Redis test database:', error)
+      }
+
+      // Run PostgreSQL migrations
+      await testUtils.db().migrate()
+      
+      // Run ClickHouse migrations for monitoring app
+      await ace.exec('clickhouse:migrate', [])
+    },
+  ],
+  teardown: [
+    async () => {
+      await testUtils.db().truncate()
+    },
+  ],
+}
+```
+
+## Testing Patterns
+
+### Unit Tests
+
+Unit tests focus on testing individual components in isolation:
+
+```typescript
+// tests/unit/services/clickhouse_service.spec.ts
+import { test } from '@japa/runner'
+import ClickHouseService from '#error/services/clickhouse_service'
+
+test.group('ClickHouseService', () => {
+  test('should format error event correctly', async ({ assert }) => {
+    const service = new ClickHouseService()
+    const event = {
+      timestamp: new Date(),
+      message: 'Test error',
+      level: 'error',
+    }
+    
+    const formatted = service.formatEvent(event)
+    
+    assert.properties(formatted, ['timestamp', 'message', 'level'])
+    assert.equal(formatted.level, 'error')
+  })
+})
+```
+
+### Functional Tests
+
+Functional tests test complete features including HTTP requests:
+
+```typescript
+// tests/functional/error/error_events_controller.spec.ts
+import { test } from '@japa/runner'
+import { randomUUID } from 'node:crypto'
+import Project from '#error/models/project'
+import testUtils from '@adonisjs/core/services/test_utils'
+
+test.group('ErrorEventsController', (group) => {
+  group.each.setup(async () => {
+    await testUtils.db().truncate()
+  })
+
+  test('should create error event for active project', async ({ client, assert }) => {
+    // Create test project
+    const project = await Project.create({
+      id: randomUUID(),
+      name: 'Test Project',
+      slug: 'test-project',
+      token: 'test-token',
+      isActive: true,
+    })
+
+    // Send error event
+    const response = await client
+      .post(`/api/projects/${project.id}/errors`)
+      .header('Authorization', `Bearer ${project.token}`)
+      .json({
+        timestamp: new Date().toISOString(),
+        message: 'Test error',
+        level: 'error',
+        platform: 'node',
+      })
+
+    response.assertStatus(200)
+    response.assertBodyContains({ success: true })
+  })
+
+  test('should reject events from inactive projects', async ({ client }) => {
+    const project = await Project.create({
+      id: randomUUID(),
+      name: 'Inactive Project',
+      slug: `inactive-project-${randomUUID().substring(0, 8)}`,
+      token: 'inactive-token',
+      isActive: false,
+    })
+
+    const response = await client
+      .post(`/api/projects/${project.id}/errors`)
+      .header('Authorization', `Bearer ${project.token}`)
+      .json({
+        timestamp: new Date().toISOString(),
+        message: 'Test error',
+        level: 'error',
+        platform: 'node',
+      })
+
+    response.assertStatus(403)
+  })
+})
+```
+
+### API Client Testing
+
+The Japa API client provides a fluent interface for testing HTTP endpoints:
+
+```typescript
+test('should authenticate user', async ({ client }) => {
+  const response = await client
+    .post('/api/auth/login')
+    .json({
+      email: 'test@example.com',
+      password: 'password123',
+    })
+
+  response.assertStatus(200)
+  response.assertBodyContains({
+    token: response.body().token,
+    user: {
+      email: 'test@example.com',
+    },
+  })
+})
+```
+
+### Database Testing
+
+#### PostgreSQL
+
+Use the test utils for database operations:
+
+```typescript
+test.group('User Model', (group) => {
+  group.each.setup(async () => {
+    // Truncate tables before each test
+    await testUtils.db().truncate()
+  })
+
+  test('should create user with role', async ({ assert }) => {
+    const user = await User.create({
+      id: randomUUID(),
+      email: 'test@example.com',
+      fullName: 'Test User',
+      roleId: 'default-role-id',
+    })
+
+    await user.load('role')
+    assert.equal(user.email, 'test@example.com')
+    assert.exists(user.role)
+  })
+})
+```
+
+#### ClickHouse
+
+For ClickHouse testing in the monitoring app:
+
+```typescript
+test('should insert error events', async ({ assert }) => {
+  const service = new ClickHouseService()
+  
+  await service.insertErrorEvent({
+    id: randomUUID(),
+    timestamp: new Date(),
+    project_id: 'test-project',
+    message: 'Test error',
+    level: 'error',
+  })
+
+  const results = await service.query(
+    'SELECT * FROM error_events WHERE project_id = ?',
+    ['test-project']
+  )
+
+  assert.lengthOf(results, 1)
+})
+```
+
+#### Redis
+
+For Redis testing:
+
+```typescript
+test('should cache data in Redis', async ({ assert }) => {
+  const redis = app.container.use('redis')
+  
+  await redis.set('test:key', 'test-value')
+  const value = await redis.get('test:key')
+  
+  assert.equal(value, 'test-value')
+})
+```
+
+## Test Environment
+
+### Environment Configuration
+
+Use a separate `.env.test` file for test configuration:
+
+```env
+NODE_ENV=test
+PORT=3334
+LOG_LEVEL=info
+
+# Test database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=secret
+DB_DATABASE=monitoring_test
+
+# Test Redis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_DB=15
+
+# Test ClickHouse
+CLICKHOUSE_HOST=http://localhost:8123
+CLICKHOUSE_DB=monitoring_test
+```
+
+### Docker Testing
+
+Run tests inside Docker containers:
+
+```bash
+# Run tests in monitoring app container
+docker-compose exec monitoring pnpm test
+
+# Run specific test suite
+docker-compose exec monitoring pnpm test:unit
+docker-compose exec monitoring pnpm test:functional
+```
+
+## Mocking and Stubbing
+
+### Service Mocking
+
+Mock external services for isolated testing:
+
+```typescript
+import { test } from '@japa/runner'
+import sinon from 'sinon'
+import MainAppService from '#services/main_app_service'
+
+test('should handle API errors gracefully', async ({ assert }) => {
+  // Create a stub for the service method
+  const stub = sinon.stub(MainAppService.prototype, 'getUser')
+  stub.rejects(new Error('API Error'))
+
+  try {
+    const service = new MainAppService()
+    await service.getUser('test-id')
+    assert.fail('Should have thrown an error')
+  } catch (error) {
+    assert.equal(error.message, 'API Error')
+  }
+
+  stub.restore()
+})
+```
+
+### HTTP Mocking
+
+Mock external HTTP requests:
+
+```typescript
+import nock from 'nock'
+
+test('should handle webhook requests', async ({ client }) => {
+  // Mock Logto API
+  nock('http://logto.localhost')
+    .post('/api/hooks')
+    .reply(200, { id: 'hook-123', status: 'active' })
+
+  const response = await client.post('/api/webhooks/register')
+  
+  response.assertStatus(200)
+  response.assertBodyContains({ hookId: 'hook-123' })
+})
+```
+
+## Test Organization
+
+### Directory Structure
+
+```
+apps/monitoring/tests/
+├── unit/
+│   ├── error/
+│   │   └── services/
+│   │       └── clickhouse_service.spec.ts
+│   └── auth/
+│       └── services/
+│           └── main_app_service.spec.ts
+├── functional/
+│   ├── error/
+│   │   ├── error_events_controller.spec.ts
+│   │   └── projects_controller.spec.ts
+│   └── auth/
+│       └── social_controller.spec.ts
+├── fixtures/
+│   └── sample_events.json
+└── bootstrap.ts
+```
+
+### Test Naming Conventions
+
+- Test files end with `.spec.ts`
+- Test groups match the component being tested
+- Test descriptions start with "should"
+- Use descriptive test names that explain the behavior
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/test.yml
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      clickhouse:
+        image: clickhouse/clickhouse-server
+        ports:
+          - 8123:8123
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - run: pnpm install
+      - run: pnpm test
+```
+
+## Best Practices
+
+### 1. Test Isolation
+
+- Each test should be independent
+- Use `group.each.setup()` to reset state
+- Don't rely on test execution order
+
+### 2. Database Cleanup
+
+- Always truncate tables after tests
+- Use unique values (UUIDs) to avoid conflicts
+- Clean up all databases (PostgreSQL, ClickHouse, Redis)
+
+### 3. Async Testing
+
+- Always use `async/await` for asynchronous operations
+- Handle promise rejections properly
+- Set appropriate timeouts for long-running tests
+
+### 4. Test Data
+
+- Use factories or fixtures for test data
+- Generate unique identifiers with `randomUUID()`
+- Keep test data minimal but realistic
+
+### 5. Error Testing
+
+- Test both success and failure scenarios
+- Verify error messages and status codes
+- Test edge cases and boundary conditions
+
+### 6. Performance
+
+- Keep unit tests fast (< 2 seconds)
+- Use mocks for external services
+- Run integration tests separately
+
+## Debugging Tests
+
+### Visual Studio Code
+
+Add this configuration to `.vscode/launch.json`:
+
+```json
+{
+  "type": "node",
+  "request": "launch",
+  "name": "Debug Tests",
+  "program": "${workspaceFolder}/node_modules/.bin/japa",
+  "args": ["--files", "${file}"],
+  "cwd": "${workspaceFolder}/apps/monitoring",
+  "console": "integratedTerminal"
+}
+```
+
+### Console Debugging
+
+```typescript
+test('debug test', async ({ assert }) => {
+  const data = await someFunction()
+  
+  // Add debugging output
+  console.log('Data:', JSON.stringify(data, null, 2))
+  
+  assert.exists(data)
+})
+```
+
+## Common Issues and Solutions
+
+### 1. Database Connection Errors
+
+**Problem**: Tests fail with database connection errors
+**Solution**: Ensure test databases are running and accessible
+
+```bash
+# Check PostgreSQL
+docker-compose exec postgres psql -U postgres -c "SELECT 1"
+
+# Check ClickHouse
+curl http://localhost:8123/ping
+
+# Check Redis
+docker-compose exec redis redis-cli ping
+```
+
+### 2. Test Pollution
+
+**Problem**: Tests pass individually but fail when run together
+**Solution**: Ensure proper cleanup in test hooks
+
+```typescript
+group.each.setup(async () => {
+  await testUtils.db().truncate()
+  await clickhouseService.truncateTables()
+  await redis.flushdb()
+})
+```
+
+### 3. Async Timeout
+
+**Problem**: Tests timeout on async operations
+**Solution**: Increase timeout or optimize the operation
+
+```typescript
+test('long running test', async ({ assert }) => {
+  // Test implementation
+}).timeout(60000) // 60 seconds
+```
+
+## Future Improvements
+
+1. **Test Coverage**: Implement code coverage reporting with c8
+2. **E2E Testing**: Add Playwright for end-to-end testing
+3. **Performance Testing**: Add load testing with k6
+4. **Mutation Testing**: Implement mutation testing with Stryker
+5. **Visual Regression**: Add visual regression testing for UI components

@@ -1,0 +1,325 @@
+---
+title: Logto User Management
+description: Detailed documentation of user management with Logto
+---
+
+# Logto User Management
+
+This document details how we manage users in Logto and synchronize them with our application's user data.
+
+## Overview
+
+In our application, users are authenticated through Logto and their data is synchronized between our database and Logto. This allows us to:
+
+1. Maintain a single source of truth for user authentication
+2. Leverage Logto's user management capabilities
+3. Store additional user data in our database
+
+## User Authentication
+
+Users authenticate through Logto using the OAuth 2.0 / OpenID Connect flow. When a user logs in:
+
+1. They are redirected to Logto for authentication
+2. After successful authentication, they are redirected back to our application
+3. We retrieve the user's information from Logto
+4. We find or create a corresponding user in our database
+
+## User Creation and Synchronization
+
+### Finding or Creating Users
+
+When a user authenticates with Logto, we find or create a corresponding user in our database:
+
+```typescript
+private async findOrCreateUser(userInfo: any) {
+  // Find user by external ID
+  let user = await User.findBy('external_id', userInfo.sub)
+  
+  if (!user) {
+    // Create new user
+    user = new User()
+    user.externalId = userInfo.sub
+    user.email = userInfo.email
+    user.name = userInfo.name || userInfo.username
+    await user.save()
+  } else {
+    // Update user information
+    user.email = userInfo.email
+    user.name = userInfo.name || userInfo.username
+    await user.save()
+  }
+  
+  return user
+}
+```
+
+### User Model
+
+Our User model includes an `externalId` field that stores the Logto user ID:
+
+```typescript
+// apps/main/app/users/models/user.ts
+export default class User extends BaseModel {
+  @column({ isPrimary: true })
+  public id: string
+
+  @column()
+  public externalId: string
+
+  @column()
+  public email: string
+
+  @column()
+  public name: string
+
+  // Other user properties...
+
+  @manyToMany(() => Company, {
+    pivotTable: 'user_companies',
+    pivotColumns: ['role', 'is_primary', 'custom_data'],
+  })
+  public companies: ManyToMany<typeof Company>
+}
+```
+
+## User Profile Management
+
+### Getting User Information
+
+We retrieve user information from Logto using the Management API:
+
+```typescript
+async getUserInfo(email: string): Promise<any> {
+  try {
+    // Search for user by email
+    const users = await this.request('/users', 'GET', { email })
+    
+    if (users && users.length > 0) {
+      return users[0]
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error getting user info:', error)
+    throw error
+  }
+}
+```
+
+### Updating User Information
+
+When a user updates their profile in our application, we update their information in both our database and Logto:
+
+```typescript
+async updateUserProfile(userId: string, data: any): Promise<void> {
+  // Get user
+  const user = await User.findOrFail(userId)
+  
+  // Update user in our database
+  user.name = data.name
+  // Update other properties...
+  await user.save()
+  
+  // Update user in Logto
+  const managementApiService = new LogtoManagementApiService()
+  await managementApiService.updateUser(user.externalId, {
+    name: data.name,
+    // Other properties...
+  })
+}
+```
+
+## User Organizations
+
+### Getting User Organizations
+
+We retrieve a user's organizations from Logto:
+
+```typescript
+async getUserOrganizations(userId: string): Promise<any> {
+  return this.request(`/users/${userId}/organizations`, 'GET')
+}
+```
+
+### Checking Organization Membership
+
+We check if a user is a member of an organization:
+
+```typescript
+async isUserInOrganization(userId: string, organizationId: string): Promise<boolean> {
+  try {
+    const organizations = await this.getUserOrganizations(userId)
+    return organizations.some((org: any) => org.id === organizationId)
+  } catch (error) {
+    console.error('Error checking organization membership:', error)
+    return false
+  }
+}
+```
+
+## User Roles
+
+### Getting User Roles
+
+We retrieve a user's roles in an organization:
+
+```typescript
+async getUserOrganizationRoles(organizationId: string, userId: string): Promise<any> {
+  return this.request(`/organizations/${organizationId}/users/${userId}/roles`, 'GET')
+}
+```
+
+### Checking User Roles
+
+We check if a user has a specific role in an organization:
+
+```typescript
+async hasRole(userId: string, organizationId: string, roleName: string): Promise<boolean> {
+  try {
+    const roles = await this.getUserOrganizationRoles(organizationId, userId)
+    return roles.some((role: any) => role.name === roleName)
+  } catch (error) {
+    console.error(`Error checking if user has role ${roleName}:`, error)
+    return false
+  }
+}
+```
+
+## User Invitation
+
+When inviting a user to a company, we:
+
+1. Check if the user already exists in Logto
+2. If not, create a new user in Logto
+3. Add the user to the organization in Logto
+4. Assign appropriate roles to the user
+5. Create the user-company relationship in our database
+
+```typescript
+async inviteUserToCompany(email: string, companyId: string, role: string): Promise<void> {
+  // Get company
+  const company = await Company.findOrFail(companyId)
+  
+  // Check if user exists in Logto
+  const managementApiService = new LogtoManagementApiService()
+  let logtoUser = await managementApiService.getUserInfo(email)
+  
+  if (!logtoUser) {
+    // Create user in Logto
+    logtoUser = await managementApiService.createUser({
+      email,
+      // Other properties...
+    })
+  }
+  
+  // Find or create user in our database
+  let user = await User.findBy('email', email)
+  
+  if (!user) {
+    user = new User()
+    user.externalId = logtoUser.id
+    user.email = email
+    user.name = email.split('@')[0] // Temporary name
+    await user.save()
+  }
+  
+  // Add user to organization in Logto
+  await managementApiService.addUserToOrganization(
+    logtoUser.id,
+    company.externalId
+  )
+  
+  // Assign role to user
+  await managementApiService.assignUserOrganizationRoles(
+    logtoUser.id,
+    company.externalId,
+    [role]
+  )
+  
+  // Create user-company relationship
+  await company.related('users').attach({
+    [user.id]: {
+      role,
+      is_primary: false,
+      custom_data: JSON.stringify({}),
+    }
+  })
+  
+  // Send invitation email
+  // ...
+}
+```
+
+## User Removal
+
+When removing a user from a company, we:
+
+1. Remove the user from the organization in Logto
+2. Remove the user-company relationship in our database
+
+```typescript
+async removeUserFromCompany(userId: string, companyId: string): Promise<void> {
+  // Get company and user
+  const company = await Company.findOrFail(companyId)
+  const user = await User.findOrFail(userId)
+  
+  // Remove user from organization in Logto
+  const managementApiService = new LogtoManagementApiService()
+  await managementApiService.removeUserFromOrganization(
+    user.externalId,
+    company.externalId
+  )
+  
+  // Remove user-company relationship
+  await company.related('users').detach([userId])
+}
+```
+
+## Error Handling
+
+We handle errors that may occur during user management:
+
+```typescript
+try {
+  // Attempt to add user to organization
+  await managementApiService.addUserToOrganization(
+    user.externalId,
+    logtoOrganization.id
+  )
+  
+  // Attempt to assign roles
+  await managementApiService.assignUserOrganizationRoles(
+    user.externalId,
+    logtoOrganization.id,
+    ['admin']
+  )
+} catch (error) {
+  console.error('Failed to manage user in organization:', error)
+  // Handle error appropriately
+}
+```
+
+## User Data Mapping
+
+We map user data between Logto and our database:
+
+| Logto Field | Our Database Field |
+|-------------|-------------------|
+| `sub`       | `externalId`      |
+| `email`     | `email`           |
+| `name`      | `name`            |
+| Custom data | Additional fields |
+
+## Security Considerations
+
+1. **User Data**: We store minimal user data in our database, relying on Logto for authentication
+2. **Tokens**: We store tokens securely in the server-side session
+3. **Permissions**: We check permissions in both our database and Logto for critical operations
+
+## Next Steps
+
+For more information about other aspects of our Logto integration, please refer to:
+
+- [Authentication](./authentication) - Details on the authentication flow
+- [Organization Management](./organization-management) - Details on organization management
+- [API Integration](./api-integration) - Details on the Logto Management API integration

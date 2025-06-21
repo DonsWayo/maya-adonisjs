@@ -1,0 +1,446 @@
+---
+title: Logto API Integration
+description: Detailed documentation of the Logto Management API integration
+---
+
+# Logto API Integration
+
+This document provides a comprehensive overview of our integration with the Logto Management API, including authentication, request handling, and error management.
+
+## Management API Service
+
+The core of our Logto API integration is the `LogtoManagementApiService` class, which provides methods for interacting with the Logto Management API:
+
+```typescript
+// apps/main/app/auth/logto/services/management_api_service.ts
+export class LogtoManagementApiService {
+  private baseUrl: string
+  private clientId: string
+  private clientSecret: string
+  private apiResource: string
+  private accessToken: string | null = null
+  private tokenExpiry: number = 0
+
+  constructor() {
+    this.baseUrl = env.get('LOGTO_ENDPOINT') + '/api'
+    this.clientId = env.get('LOGTO_APP_ID')
+    this.clientSecret = env.get('LOGTO_APP_SECRET')
+    this.apiResource = env.get('LOGTO_API_RESOURCE')
+  }
+
+  // API methods...
+}
+```
+
+## API Authentication
+
+Before making requests to the Logto Management API, we need to obtain an access token:
+
+```typescript
+private async getAccessToken(): Promise<string> {
+  // Check if we have a valid token
+  if (this.accessToken && this.tokenExpiry > Date.now()) {
+    console.log('Using existing Logto access token')
+    return this.accessToken
+  }
+
+  console.log('Getting new Logto access token')
+
+  try {
+    const tokenUrl = `${env.get('LOGTO_ENDPOINT')}/oidc/token`
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        scope: this.apiResource,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new LogtoError(`Failed to get access token: ${errorText}`)
+    }
+
+    const data = await response.json()
+    this.accessToken = data.access_token
+    this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000 // Subtract 1 minute for safety
+
+    return this.accessToken
+  } catch (error) {
+    console.error('Error getting Logto access token:', error)
+    throw new LogtoError('Failed to get access token', error)
+  }
+}
+```
+
+## Request Handling
+
+The `request` method is the core of our API integration, handling authentication, request preparation, and response parsing:
+
+```typescript
+private async request(endpoint: string, method: string, data?: any): Promise<any> {
+  try {
+    // Get access token
+    const accessToken = await this.getAccessToken()
+    const url = `${this.baseUrl}${endpoint}`
+    
+    console.log(`Logto API request: ${method} ${endpoint}`)
+    if (data) {
+      console.log('Logto API request body:', JSON.stringify(data))
+    }
+    
+    console.log('Logto API URL:', url)
+    
+    // Make the request
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: data ? JSON.stringify(data) : undefined
+    })
+    
+    console.log(`Logto API response status: ${response.status} ${response.statusText}`)
+    
+    // Handle response
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`Logto API error (${response.status}):`, errorText)
+      throw new LogtoError(`Logto API error (${response.status}): ${errorText}`)
+    }
+    
+    const responseText = await response.text()
+    console.log(`Logto API response for ${endpoint} (truncated):`, responseText.substring(0, 100))
+    
+    // Special case for plain text responses
+    if (endpoint.includes('/organizations/') && endpoint.includes('/users') && responseText === 'Created') {
+      console.log('Received plain text Created response for organization users endpoint')
+      return { status: 'success', message: 'Created' }
+    }
+    
+    // Parse JSON response
+    try {
+      return JSON.parse(responseText)
+    } catch (e) {
+      // Handle non-JSON responses
+      if (responseText && responseText.trim()) {
+        console.log(`Received plain text response for ${endpoint}:`, responseText)
+        return { status: 'success', message: responseText }
+      }
+      throw new LogtoError(`Failed to parse API response: ${endpoint}`, e)
+    }
+  } catch (error) {
+    console.error(`Error in Logto API request to ${endpoint}:`, error)
+    throw error
+  }
+}
+```
+
+## API Methods
+
+### User Management
+
+#### Get User Information
+
+```typescript
+async getUserInfo(email: string): Promise<any> {
+  try {
+    // Search for user by email
+    const users = await this.request('/users', 'GET', { email })
+    
+    if (users && users.length > 0) {
+      return users[0]
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error getting user info:', error)
+    throw error
+  }
+}
+```
+
+#### Get User Organizations
+
+```typescript
+async getUserOrganizations(userId: string): Promise<any> {
+  return this.request(`/users/${userId}/organizations`, 'GET')
+}
+```
+
+### Organization Management
+
+#### Create Organization
+
+```typescript
+async createOrganization(name: string, description?: string): Promise<any> {
+  const payload: any = { name }
+  if (description) {
+    payload.description = description
+  }
+  return this.request('/organizations', 'POST', payload)
+}
+```
+
+#### Get Organization
+
+```typescript
+async getOrganization(organizationId: string): Promise<any> {
+  return this.request(`/organizations/${organizationId}`, 'GET')
+}
+```
+
+#### Update Organization
+
+```typescript
+async updateOrganization(organizationId: string, data: any): Promise<any> {
+  return this.request(`/organizations/${organizationId}`, 'PATCH', data)
+}
+```
+
+#### Delete Organization
+
+```typescript
+async deleteOrganization(organizationId: string): Promise<any> {
+  return this.request(`/organizations/${organizationId}`, 'DELETE')
+}
+```
+
+### Organization Membership
+
+#### Add User to Organization
+
+```typescript
+async addUserToOrganization(userId: string, organizationId: string): Promise<any> {
+  const payload = {
+    userIds: [userId]
+  }
+  return this.request(`/organizations/${organizationId}/users`, 'POST', payload)
+}
+```
+
+#### Remove User from Organization
+
+```typescript
+async removeUserFromOrganization(userId: string, organizationId: string): Promise<any> {
+  return this.request(`/organizations/${organizationId}/users/${userId}`, 'DELETE')
+}
+```
+
+### Role Management
+
+#### Get Organization Roles
+
+```typescript
+async getOrganizationRoles(): Promise<any> {
+  return this.request('/organization-roles', 'GET')
+}
+```
+
+#### Create Organization Role
+
+```typescript
+async createOrganizationRole(name: string, description?: string): Promise<any> {
+  const payload: any = { name, type: 'User' }
+  if (description) {
+    payload.description = description
+  }
+  return this.request('/organization-roles', 'POST', payload)
+}
+```
+
+#### Ensure Organization Roles
+
+```typescript
+async ensureOrganizationRoles(roles: Array<{ name: string, description?: string }>): Promise<any> {
+  try {
+    // Get existing organization roles
+    const existingRoles = await this.getOrganizationRoles()
+    const existingRoleNames = existingRoles.map((role: any) => role.name)
+    
+    // Create missing roles
+    const rolesToCreate = roles.filter(role => !existingRoleNames.includes(role.name))
+    const createdRoles = []
+    
+    for (const role of rolesToCreate) {
+      try {
+        const createdRole = await this.createOrganizationRole(role.name, role.description)
+        createdRoles.push(createdRole)
+      } catch (error) {
+        console.error(`Failed to create organization role ${role.name}:`, error)
+      }
+    }
+    
+    return {
+      existingRoles,
+      createdRoles
+    }
+  } catch (error) {
+    console.error('Failed to ensure organization roles:', error)
+    throw error
+  }
+}
+```
+
+### Role Assignment
+
+#### Assign Roles to User
+
+```typescript
+async assignUserOrganizationRoles(userId: string, organizationId: string, roleNames: string[]): Promise<any> {
+  return this.request(`/organizations/${organizationId}/users/${userId}/roles`, 'POST', {
+    organizationRoleNames: roleNames
+  })
+}
+```
+
+#### Get User Roles
+
+```typescript
+async getUserOrganizationRoles(organizationId: string, userId: string): Promise<any> {
+  return this.request(`/organizations/${organizationId}/users/${userId}/roles`, 'GET')
+}
+```
+
+## Error Handling
+
+We use a custom `LogtoError` class for error handling:
+
+```typescript
+// apps/main/app/auth/logto/types/errors.ts
+export class LogtoError extends Error {
+  constructor(message: string, public details?: any) {
+    super(message)
+    this.name = 'LogtoError'
+  }
+}
+```
+
+This allows us to provide detailed error information:
+
+```typescript
+try {
+  const result = await managementApiService.addUserToOrganization(userId, organizationId)
+  // Handle success
+} catch (error) {
+  if (error instanceof LogtoError) {
+    console.error('Logto API error:', error.message, error.details)
+    // Handle Logto-specific error
+  } else {
+    console.error('Unexpected error:', error)
+    // Handle other errors
+  }
+}
+```
+
+## Response Handling
+
+The Logto API returns different response formats for different endpoints:
+
+- Some endpoints return JSON responses
+- Some endpoints (like adding users to organizations) return plain text responses
+
+Our `request` method handles these different response formats:
+
+```typescript
+// Special case for plain text responses
+if (endpoint.includes('/organizations/') && endpoint.includes('/users') && responseText === 'Created') {
+  console.log('Received plain text Created response for organization users endpoint')
+  return { status: 'success', message: 'Created' }
+}
+
+// Parse JSON response
+try {
+  return JSON.parse(responseText)
+} catch (e) {
+  // Handle non-JSON responses
+  if (responseText && responseText.trim()) {
+    console.log(`Received plain text response for ${endpoint}:`, responseText)
+    return { status: 'success', message: responseText }
+  }
+  throw new LogtoError(`Failed to parse API response: ${endpoint}`, e)
+}
+```
+
+## Debugging and Logging
+
+We use extensive logging to help with debugging:
+
+```typescript
+console.log(`Logto API request: ${method} ${endpoint}`)
+if (data) {
+  console.log('Logto API request body:', JSON.stringify(data))
+}
+
+console.log('Logto API URL:', url)
+
+console.log(`Logto API response status: ${response.status} ${response.statusText}`)
+
+console.log(`Logto API response for ${endpoint} (truncated):`, responseText.substring(0, 100))
+```
+
+## Important Considerations
+
+### Role Names vs IDs
+
+When assigning roles to users, use role names (e.g., 'admin') rather than role IDs:
+
+```typescript
+// Correct
+await managementApiService.assignUserOrganizationRoles(
+  userId,
+  organizationId,
+  ['admin'] // Use role names, not IDs
+)
+
+// Incorrect
+await managementApiService.assignUserOrganizationRoles(
+  userId,
+  organizationId,
+  ['b8dfq09due2ccr3uljfww'] // Don't use role IDs
+)
+```
+
+### Response Format Handling
+
+Be prepared to handle different response formats:
+
+```typescript
+// Handle both JSON and plain text responses
+try {
+  return JSON.parse(responseText)
+} catch (e) {
+  if (responseText && responseText.trim()) {
+    return { status: 'success', message: responseText }
+  }
+  throw new LogtoError(`Failed to parse API response: ${endpoint}`, e)
+}
+```
+
+### Error Handling
+
+Always handle errors gracefully:
+
+```typescript
+try {
+  // API call
+} catch (error) {
+  console.error('API error:', error)
+  // Handle error appropriately
+  // Don't let the error propagate to the user if possible
+}
+```
+
+## Next Steps
+
+For more information about other aspects of our Logto integration, please refer to:
+
+- [Organization Management](./organization-management) - Details on organization management
+- [Role-Based Access Control](./rbac) - Details on role management and permissions
+- [Troubleshooting](./troubleshooting) - Common issues and solutions

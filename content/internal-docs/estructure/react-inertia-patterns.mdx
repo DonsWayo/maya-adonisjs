@@ -1,0 +1,642 @@
+---
+title: React & Inertia.js Patterns
+description: Frontend development patterns using React 19 with Inertia.js
+---
+
+# React & Inertia.js Patterns
+
+This guide outlines the established patterns for frontend development using React 19 with Inertia.js in our Maya AdonisJS project.
+
+## Page Component Structure
+
+All Inertia page components should follow this standardized structure:
+
+```typescript
+import { InferPageProps } from '@adonisjs/inertia/types'
+import { Head } from '@inertiajs/react'
+import { AppLayout } from '@/components/layouts/app-layout'
+import { Button } from '@workspace/ui/components/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card'
+import type UsersController from '#controllers/users_controller'
+
+export default function UsersIndexPage({ 
+  users, 
+  meta,
+  filters 
+}: InferPageProps<UsersController, 'index'>) {
+  return (
+    <>
+      <Head title="Users" />
+      <AppLayout 
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/' },
+          { label: 'Users' }
+        ]} 
+        layout="sidebar"
+      >
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Users</h1>
+            <Button href="/users/create">
+              Add User
+            </Button>
+          </div>
+          
+          {/* Page content */}
+          <div className="grid gap-4">
+            {users.data.map((user) => (
+              <UserCard key={user.id} user={user} />
+            ))}
+          </div>
+        </div>
+      </AppLayout>
+    </>
+  )
+}
+```
+
+### Key Elements
+
+1. **Type Safety**: Use `InferPageProps` for automatic type inference from controllers
+2. **Head Component**: Always include the `<Head>` component for page metadata
+3. **Layout System**: Use `AppLayout` with appropriate layout selection
+4. **Breadcrumbs**: Provide clear navigation context
+5. **Shared Components**: Import from `@workspace/ui` for consistency
+
+## Component Patterns
+
+### Functional Components with TypeScript
+
+Use functional components with proper TypeScript interfaces:
+
+```typescript
+interface UserCardProps {
+  user: {
+    id: number
+    name: string
+    email: string
+    avatar?: string
+    isActive: boolean
+    company: {
+      name: string
+      slug: string
+    }
+  }
+  onEdit?: (id: number) => void
+  onDelete?: (id: number) => void
+}
+
+export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
+  return (
+    <Card className="transition-shadow hover:shadow-md">
+      <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+        <div className="flex items-center space-x-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={user.avatar} />
+            <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle className="text-base">{user.name}</CardTitle>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
+          </div>
+        </div>
+        <div className="ml-auto flex items-center space-x-2">
+          <Badge variant={user.isActive ? "default" : "secondary"}>
+            {user.isActive ? "Active" : "Inactive"}
+          </Badge>
+          {onEdit && (
+            <Button variant="ghost" size="sm" onClick={() => onEdit(user.id)}>
+              Edit
+            </Button>
+          )}
+          {onDelete && (
+            <Button variant="ghost" size="sm" onClick={() => onDelete(user.id)}>
+              Delete
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          Company: {user.company.name}
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+### Component Guidelines
+
+1. **Use functional components** with hooks
+2. **Prefer TypeScript interfaces** for props
+3. **Use proper prop destructuring**
+4. **Implement proper error boundaries**
+5. **Use React 19 features** appropriately
+6. **Export named components** for better tree-shaking
+
+## Layout System
+
+### AppLayout Component
+
+Use the `AppLayout` component with proper configuration:
+
+```typescript
+interface AppLayoutProps {
+  children: React.ReactNode
+  breadcrumbs?: Array<{ label: string; href?: string }>
+  layout?: 'sidebar' | 'header'
+  title?: string
+  actions?: React.ReactNode
+}
+
+export function AppLayout({ 
+  children, 
+  breadcrumbs = [], 
+  layout = 'sidebar',
+  title,
+  actions
+}: AppLayoutProps) {
+  return (
+    <div className="min-h-screen bg-background">
+      {layout === 'sidebar' && <SidebarNavigation />}
+      {layout === 'header' && <HeaderNavigation />}
+      
+      <main className={cn(
+        "flex-1",
+        layout === 'sidebar' && "ml-64",
+        "p-6"
+      )}>
+        {breadcrumbs.length > 0 && (
+          <Breadcrumb items={breadcrumbs} className="mb-6" />
+        )}
+        
+        {(title || actions) && (
+          <div className="flex items-center justify-between mb-6">
+            {title && <h1 className="text-2xl font-bold">{title}</h1>}
+            {actions && <div className="flex space-x-2">{actions}</div>}
+          </div>
+        )}
+        
+        {children}
+      </main>
+    </div>
+  )
+}
+```
+
+### Layout Selection
+
+- **`layout="sidebar"`**: For main navigation with sidebar (default)
+- **`layout="header"`**: For top navigation bar
+- **Always provide breadcrumbs** for navigation context
+
+## Form Handling
+
+### Inertia Forms with Validation
+
+Use Inertia's `useForm` hook with proper TypeScript types and validation:
+
+```typescript
+import { useForm } from '@inertiajs/react'
+import { Button } from '@workspace/ui/components/button'
+import { Input } from '@workspace/ui/components/input'
+import { Label } from '@workspace/ui/components/label'
+import { Alert, AlertDescription } from '@workspace/ui/components/alert'
+
+interface UserFormData {
+  name: string
+  email: string
+  companyId: number
+  role: string
+}
+
+export function UserForm({ 
+  user, 
+  companies,
+  onCancel 
+}: {
+  user?: UserFormData
+  companies: Array<{ id: number; name: string }>
+  onCancel?: () => void
+}) {
+  const { data, setData, post, put, processing, errors, clearErrors } = useForm<UserFormData>({
+    name: user?.name || '',
+    email: user?.email || '',
+    companyId: user?.companyId || 0,
+    role: user?.role || 'user'
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (user) {
+      put(`/users/${user.id}`, {
+        onSuccess: () => {
+          // Handle success
+        }
+      })
+    } else {
+      post('/users', {
+        onSuccess: () => {
+          // Handle success
+        }
+      })
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {Object.keys(errors).length > 0 && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Please fix the errors below and try again.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="name">Name</Label>
+        <Input
+          id="name"
+          value={data.name}
+          onChange={(e) => {
+            setData('name', e.target.value)
+            clearErrors('name')
+          }}
+          error={errors.name}
+          placeholder="Enter full name"
+        />
+        {errors.name && (
+          <p className="text-sm text-destructive">{errors.name}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          value={data.email}
+          onChange={(e) => {
+            setData('email', e.target.value)
+            clearErrors('email')
+          }}
+          error={errors.email}
+          placeholder="Enter email address"
+        />
+        {errors.email && (
+          <p className="text-sm text-destructive">{errors.email}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="company">Company</Label>
+        <Select
+          value={data.companyId.toString()}
+          onValueChange={(value) => setData('companyId', parseInt(value))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a company" />
+          </SelectTrigger>
+          <SelectContent>
+            {companies.map((company) => (
+              <SelectItem key={company.id} value={company.id.toString()}>
+                {company.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.companyId && (
+          <p className="text-sm text-destructive">{errors.companyId}</p>
+        )}
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+        <Button type="submit" disabled={processing}>
+          {processing ? 'Saving...' : user ? 'Update User' : 'Create User'}
+        </Button>
+      </div>
+    </form>
+  )
+}
+```
+
+### Form Guidelines
+
+1. **Use controlled components** for form inputs
+2. **Implement proper validation** error handling
+3. **Provide loading states** during form submission
+4. **Clear errors** when user starts typing
+5. **Use semantic HTML** elements
+
+## Router Rules & Navigation
+
+### Critical: Never Use react-router-dom
+
+```typescript
+// ❌ NEVER do this
+import { useParams, useLoaderData } from "react-router-dom"
+
+// ✅ Always do this
+import { useParams, useLoaderData } from "react-router"
+```
+
+### Inertia Navigation
+
+Use Inertia's navigation methods for SPA-like experience:
+
+```typescript
+import { router } from '@inertiajs/react'
+import { Link } from '@inertiajs/react'
+
+// Programmatic navigation
+const handleUserClick = (userId: number) => {
+  router.visit(`/users/${userId}`)
+}
+
+// With loading states
+const handleDelete = async (userId: number) => {
+  if (confirm('Are you sure?')) {
+    router.delete(`/users/${userId}`, {
+      onStart: () => setDeleting(true),
+      onFinish: () => setDeleting(false),
+      onSuccess: () => {
+        toast.success('User deleted successfully')
+      },
+      onError: () => {
+        toast.error('Failed to delete user')
+      }
+    })
+  }
+}
+
+// Link component for navigation
+<Link href="/users/create" className="btn-primary">
+  Create User
+</Link>
+```
+
+## Styling with TailwindCSS v4
+
+### Design System Integration
+
+Use TailwindCSS v4 with our design system:
+
+```typescript
+// Using design tokens
+<div className="bg-background text-foreground">
+  <h1 className="text-primary font-semibold">Title</h1>
+  <p className="text-muted-foreground">Description</p>
+</div>
+
+// Responsive design
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {/* Grid items */}
+</div>
+
+// Component variants with CVA
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8"
+      }
+    }
+  }
+)
+```
+
+### Styling Guidelines
+
+1. **Use TailwindCSS v4** classes and features
+2. **Follow design system** color tokens (primary, secondary, muted, etc.)
+3. **Implement proper focus states** with `focus-visible`
+4. **Use consistent spacing** with Tailwind spacing scale
+5. **Implement hover and active states**
+
+## State Management
+
+### Local State with Hooks
+
+Use React hooks for component-level state:
+
+```typescript
+export function UsersList() {
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => 
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [users, searchQuery])
+
+  const handleSelectUser = useCallback((userId: number) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    )
+  }, [])
+
+  return (
+    <div>
+      {/* Component JSX */}
+    </div>
+  )
+}
+```
+
+### Global State with Inertia
+
+Use Inertia's shared data for global state:
+
+```typescript
+// In your AdonisJS controller
+export default class DashboardController {
+  async index({ inertia, auth }: HttpContext) {
+    return inertia.render('Dashboard/Index', {
+      user: auth.user,
+      notifications: await auth.user.related('notifications').query().limit(5),
+      stats: await this.getDashboardStats()
+    }, {
+      // Shared data available across all pages
+      share: {
+        user: auth.user.serialize(),
+        permissions: auth.user.getAllPermissions(),
+        company: auth.user.company.serialize()
+      }
+    })
+  }
+}
+
+// In your React components
+import { usePage } from '@inertiajs/react'
+
+export function Navigation() {
+  const { props } = usePage()
+  const { user, permissions } = props.shared
+
+  return (
+    <nav>
+      {permissions.includes('users.read') && (
+        <Link href="/users">Users</Link>
+      )}
+    </nav>
+  )
+}
+```
+
+## Performance Optimization
+
+### React.memo for Expensive Components
+
+```typescript
+import { memo } from 'react'
+
+const UserCard = memo(function UserCard({ user, onEdit }: UserCardProps) {
+  return (
+    <Card>
+      {/* Component content */}
+    </Card>
+  )
+}, (prevProps, nextProps) => {
+  // Custom comparison function
+  return prevProps.user.id === nextProps.user.id &&
+         prevProps.user.updatedAt === nextProps.user.updatedAt
+})
+```
+
+### Code Splitting
+
+```typescript
+import { lazy, Suspense } from 'react'
+import { Skeleton } from '@workspace/ui/components/skeleton'
+
+const UserFormModal = lazy(() => import('./UserFormModal'))
+
+export function UsersPage() {
+  const [showForm, setShowForm] = useState(false)
+
+  return (
+    <div>
+      {/* Page content */}
+      
+      {showForm && (
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <UserFormModal onClose={() => setShowForm(false)} />
+        </Suspense>
+      )}
+    </div>
+  )
+}
+```
+
+## Testing Patterns
+
+### Component Testing
+
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react'
+import { UserCard } from './UserCard'
+
+describe('UserCard', () => {
+  const mockUser = {
+    id: 1,
+    name: 'John Doe',
+    email: 'john@example.com',
+    isActive: true,
+    company: { name: 'Acme Corp', slug: 'acme' }
+  }
+
+  test('renders user information', () => {
+    render(<UserCard user={mockUser} />)
+    
+    expect(screen.getByText('John Doe')).toBeInTheDocument()
+    expect(screen.getByText('john@example.com')).toBeInTheDocument()
+    expect(screen.getByText('Acme Corp')).toBeInTheDocument()
+  })
+
+  test('calls onEdit when edit button is clicked', () => {
+    const onEdit = jest.fn()
+    render(<UserCard user={mockUser} onEdit={onEdit} />)
+    
+    fireEvent.click(screen.getByText('Edit'))
+    expect(onEdit).toHaveBeenCalledWith(1)
+  })
+})
+```
+
+## Error Boundaries
+
+### Global Error Boundary
+
+```typescript
+import { Component, type ReactNode } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@workspace/ui/components/alert'
+import { Button } from '@workspace/ui/components/button'
+
+interface ErrorBoundaryState {
+  hasError: boolean
+  error?: Error
+}
+
+export class ErrorBoundary extends Component<
+  { children: ReactNode },
+  ErrorBoundaryState
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Error boundary caught an error:', error, errorInfo)
+    // Report to error tracking service
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Alert variant="destructive" className="max-w-md">
+            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertDescription className="mt-2">
+              An unexpected error occurred. Please try refreshing the page.
+            </AlertDescription>
+            <Button 
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Refresh Page
+            </Button>
+          </Alert>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+```
+
+This establishes a solid foundation for building consistent, maintainable React applications with Inertia.js in our Maya AdonisJS ecosystem. 
