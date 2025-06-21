@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import clickhouse from 'adonis-clickhouse/services/main'
 import { ErrorEvent } from '../models/error_event.js'
 
@@ -15,11 +16,13 @@ interface QueryParams {
   offset?: number
 }
 
+@inject()
 export class ClickHouseService {
+
   /**
    * Store an error event in ClickHouse
    */
-  public static async storeErrorEvent(errorEvent: ErrorEvent): Promise<void> {
+  public async storeErrorEvent(errorEvent: ErrorEvent): Promise<void> {
     try {
       // Convert camelCase to snake_case and handle Date objects for ClickHouse
       // ClickHouse DateTime format: YYYY-MM-DD HH:MM:SS
@@ -91,7 +94,7 @@ export class ClickHouseService {
   /**
    * Query error events with filtering
    */
-  public static async queryErrorEvents(params: QueryParams): Promise<ErrorEvent[]> {
+  public async queryErrorEvents(params: QueryParams): Promise<ErrorEvent[]> {
     const {
       projectId,
       startDate,
@@ -172,6 +175,7 @@ export class ClickHouseService {
           // Convert string dates back to Date objects
           const event: ErrorEvent = {
             ...row,
+            projectId: row.project_id, // Map snake_case to camelCase
             timestamp: new Date(row.timestamp),
             received_at: row.received_at ? new Date(row.received_at) : undefined,
             first_seen: row.first_seen ? new Date(row.first_seen) : undefined,
@@ -193,7 +197,7 @@ export class ClickHouseService {
   /**
    * Get a specific error event by ID
    */
-  public static async getErrorEventById(id: string): Promise<ErrorEvent | null> {
+  public async getErrorEventById(id: string): Promise<ErrorEvent | null> {
     const query = `
       SELECT *
       FROM error_events
@@ -218,6 +222,7 @@ export class ClickHouseService {
     // Convert string dates back to Date objects and parse JSON fields
     const event: ErrorEvent = {
       ...row,
+      projectId: row.project_id, // Map snake_case to camelCase
       timestamp: new Date(row.timestamp),
       received_at: row.received_at ? new Date(row.received_at) : undefined,
       first_seen: row.first_seen ? new Date(row.first_seen) : undefined,
@@ -238,7 +243,7 @@ export class ClickHouseService {
   /**
    * Get error event counts by time period
    */
-  public static async getErrorEventCounts(projectId: string, period: string): Promise<any[]> {
+  public async getErrorEventCounts(projectId: string, period: string): Promise<any[]> {
     let interval: string
 
     switch (period) {
@@ -290,7 +295,7 @@ export class ClickHouseService {
   /**
    * Get top error types by count
    */
-  public static async getTopErrorTypes(projectId: string, limit: number = 10): Promise<any[]> {
+  public async getTopErrorTypes(projectId: string, limit: number = 10): Promise<any[]> {
     const query = `
       SELECT 
         type,
@@ -325,7 +330,7 @@ export class ClickHouseService {
   /**
    * Get error events summary statistics
    */
-  public static async getErrorEventsSummary(projectId: string): Promise<any> {
+  public async getErrorEventsSummary(projectId: string): Promise<any> {
     const query = `
       SELECT 
         count() AS total_events,
@@ -381,7 +386,7 @@ export class ClickHouseService {
   /**
    * Update event with group ID after processing
    */
-  public static async updateEventGroupId(eventId: string, groupId: string): Promise<void> {
+  public async updateEventGroupId(eventId: string, groupId: string): Promise<void> {
     const query = `
       ALTER TABLE error_events
       UPDATE group_id = {groupId:String}
@@ -398,7 +403,7 @@ export class ClickHouseService {
   /**
    * Mark event as processed
    */
-  public static async markEventAsProcessed(eventId: string): Promise<void> {
+  public async markEventAsProcessed(eventId: string): Promise<void> {
     const query = `
       ALTER TABLE error_events
       UPDATE has_been_processed = 1
@@ -415,7 +420,7 @@ export class ClickHouseService {
   /**
    * Get group statistics for updating PostgreSQL
    */
-  public static async getGroupStatistics(groupId: string): Promise<{
+  public async getGroupStatistics(groupId: string): Promise<{
     count: number
     uniqueUsers: number
     last24h: number
@@ -463,7 +468,7 @@ export class ClickHouseService {
   /**
    * Get recent group statistics for spike detection
    */
-  public static async getRecentGroupStats(
+  public async getRecentGroupStats(
     groupId: string,
     minutes: number
   ): Promise<{
@@ -502,7 +507,7 @@ export class ClickHouseService {
   /**
    * Batch insert for seeder efficiency
    */
-  public static async batchInsert(events: ErrorEvent[]): Promise<void> {
+  public async batchInsert(events: ErrorEvent[]): Promise<void> {
     const formatDateTime = (date: Date): string => {
       return date.toISOString().substring(0, 19).replace('T', ' ')
     }

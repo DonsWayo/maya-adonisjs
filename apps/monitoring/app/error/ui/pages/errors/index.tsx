@@ -87,8 +87,8 @@ export default function ErrorEventsIndex({
   pagination: initialPagination,
 }: ErrorEventsIndexProps) {
   const [searchTerm, setSearchTerm] = useState(initialFilters.search || '')
-  const [level, setLevel] = useState(initialFilters.level || '')
-  const [environment, setEnvironment] = useState(initialFilters.environment || '')
+  const [level, setLevel] = useState(initialFilters.level || 'all')
+  const [environment, setEnvironment] = useState(initialFilters.environment || 'all')
   const [page, setPage] = useState(initialPagination.page)
   const [startDate, setStartDate] = useState<Date | undefined>(
     initialFilters.startDate ? new Date(initialFilters.startDate) : undefined
@@ -101,8 +101,8 @@ export default function ErrorEventsIndex({
     const queryParams = new URLSearchParams()
 
     if (searchTerm) queryParams.set('search', searchTerm)
-    if (level) queryParams.set('level', level)
-    if (environment) queryParams.set('environment', environment)
+    if (level && level !== 'all') queryParams.set('level', level)
+    if (environment && environment !== 'all') queryParams.set('environment', environment)
     if (startDate) queryParams.set('startDate', startDate.toISOString())
     if (endDate) queryParams.set('endDate', endDate.toISOString())
     if (page > 1) queryParams.set('page', page.toString())
@@ -112,8 +112,8 @@ export default function ErrorEventsIndex({
 
   const resetFilters = () => {
     setSearchTerm('')
-    setLevel('')
-    setEnvironment('')
+    setLevel('all')
+    setEnvironment('all')
     setStartDate(undefined)
     setEndDate(undefined)
     setPage(1)

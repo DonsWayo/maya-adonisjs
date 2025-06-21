@@ -11,6 +11,7 @@ import router from '@adonisjs/core/services/router'
 
 const ProjectsController = () => import('#error/controllers/projects_controller')
 const ErrorEventsController = () => import('#error/controllers/error_events_controller')
+const AIAnalysisController = () => import('#error/controllers/ai_analysis_controller')
 
 // UI Routes (require authentication)
 
@@ -37,6 +38,23 @@ router
 // Project dashboard route
 router
   .get('/projects/:projectId/dashboard', [ErrorEventsController, 'dashboard'])
+  .middleware(middleware.auth())
+
+// AI Analysis routes
+router
+  .post('/api/projects/:projectId/errors/:errorId/analyze', [AIAnalysisController, 'analyzeError'])
+  .middleware(middleware.auth())
+
+router
+  .get('/api/projects/:projectId/errors/:errorId/similar', [AIAnalysisController, 'findSimilar'])
+  .middleware(middleware.auth())
+
+router
+  .post('/api/projects/:projectId/errors/:errorId/suggest-fix', [AIAnalysisController, 'suggestFix'])
+  .middleware(middleware.auth())
+
+router
+  .get('/api/projects/:projectId/groups/:groupId/ai-analysis', [AIAnalysisController, 'getGroupAnalysis'])
   .middleware(middleware.auth())
 
 // API Routes (no authentication required for error reporting)

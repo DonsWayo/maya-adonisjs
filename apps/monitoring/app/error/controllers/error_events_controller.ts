@@ -1,10 +1,17 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import Project from '../models/project.js'
 import { storeErrorEventValidator } from '../validators.js'
 import { ClickHouseService } from '../services/clickhouse_service.js'
 import ErrorEventService from '#services/error/error_event_service'
+import logger from '@adonisjs/core/services/logger'
 
+@inject()
 export default class ErrorEventsController {
+  constructor(
+    private clickHouseService: ClickHouseService,
+    private errorEventService: ErrorEventService
+  ) {}
   /*
    * API ENDPOINTS
    */
@@ -29,7 +36,7 @@ export default class ErrorEventsController {
     } else {
       // If not a UUID, only search by public_key
       project = await Project.query().where('public_key', projectId).first()
-    }
+    }    
 
     if (!project) {
       return response.unauthorized({ error: 'Invalid project ID or authentication' })
@@ -45,7 +52,7 @@ export default class ErrorEventsController {
       const payload = await request.validateUsing(storeErrorEventValidator)
 
       // Use the service to store the event
-      const result = await ErrorEventService.storeFromPayload(project.id, payload)
+      const result = await this.errorEventService.storeFromPayload(project.id, payload)
 
       // Return Sentry-compatible response
       return response.json(result)
@@ -79,7 +86,7 @@ export default class ErrorEventsController {
 
     try {
       // Query error events with filtering
-      const events = await ClickHouseService.queryErrorEvents({
+      const events = await this.clickHouseService.queryErrorEvents({
         projectId,
         startDate,
         endDate,
@@ -91,10 +98,10 @@ export default class ErrorEventsController {
       })
 
       // Get error event counts for charts
-      const eventCounts = await ClickHouseService.getErrorEventCounts(projectId, 'day')
+      const eventCounts = await this.clickHouseService.getErrorEventCounts(projectId, 'day')
 
       // Get top error types
-      const topErrorTypes = await ClickHouseService.getTopErrorTypes(projectId, 5)
+      const topErrorTypes = await this.clickHouseService.getTopErrorTypes(projectId, 5)
 
       return inertia.render('error/errors/index', {
         project,
@@ -113,29 +120,47 @@ export default class ErrorEventsController {
   /**
    * Display a specific error event
    */
-  public async show({ params, inertia }: HttpContext) {
+  public async show({ params, inertia, response }: HttpContext) {
     const { projectId, id } = params
+
+
+    logger.info(params, 'ErrorEventsController show')
 
     // Verify the project exists
     const project = await Project.find(projectId)
     if (!project) {
-      return inertia.location(`/projects`)
+      return response.redirect(`/projects`)
     }
+    
+    logger.info(project, 'ErrorEventsController show')
 
     try {
       // Get the error event
-      const event = await ClickHouseService.getErrorEventById(id)
+      const event = await this.clickHouseService.getErrorEventById(id)
+
+      logger.info(event, 'ErrorEventsController show')
+
 
       if (!event) {
-        return inertia.location(`/projects/${projectId}/errors`)
+        return response.redirect(`/projects/${projectId}/errors`)
       }
 
       // Verify the event belongs to the project
       if (event.projectId !== projectId) {
-        return inertia.location(`/projects/${projectId}/errors`)
+        return response.redirect(`/projects/${projectId}/errors`)
       }
 
-      return inertia.render('error/errors/show', { project, event })
+      logger.info(event, 'ErrorEventsController show')
+
+      // Transform the event for Inertia (dates to ISO strings)
+      const transformedEvent = {
+        ...event,
+        timestamp: event.timestamp instanceof Date ? event.timestamp.toISOString() : event.timestamp,
+        received_at: event.received_at instanceof Date ? event.received_at.toISOString() : event.received_at,
+        first_seen: event.first_seen instanceof Date ? event.first_seen.toISOString() : event.first_seen,
+      }
+
+      return inertia.render('error/errors/show', { project, event: transformedEvent })
     } catch (error) {
       console.error('Error fetching error event:', error)
       return inertia.location(`/projects/${projectId}/errors`)
@@ -156,7 +181,7 @@ export default class ErrorEventsController {
       const projects = await Project.all()
 
       // Get error events
-      const events = await ClickHouseService.queryErrorEvents({
+      const events = await this.clickHouseService.queryErrorEvents({
         startDate,
         endDate,
         level,
@@ -215,20 +240,20 @@ export default class ErrorEventsController {
 
     try {
       // Get error event counts for charts (last 30 days)
-      const eventCounts = await ClickHouseService.getErrorEventCounts(projectId, 'day')
+      const eventCounts = await this.clickHouseService.getErrorEventCounts(projectId, 'day')
 
       // Get top error types
-      const topErrorTypes = await ClickHouseService.getTopErrorTypes(projectId, 10)
+      const topErrorTypes = await this.clickHouseService.getTopErrorTypes(projectId, 10)
 
       // Get recent error events (last 10)
-      const recentEvents = await ClickHouseService.queryErrorEvents({
+      const recentEvents = await this.clickHouseService.queryErrorEvents({
         projectId,
         limit: 10,
         offset: 0,
       })
 
       // Get summary statistics
-      const summary = await ClickHouseService.getErrorEventsSummary(projectId)
+      const summary = await this.clickHouseService.getErrorEventsSummary(projectId)
 
       return inertia.render('error/projects/dashboard', {
         project,

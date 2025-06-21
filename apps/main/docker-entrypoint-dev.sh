@@ -18,4 +18,5 @@ node ace db:seed
 
 # Start the application
 echo "Starting application in development mode..."
-exec node ace serve --hmr
+# Use polling for file watching in Docker (fixes hot reload on Mac/Windows)
+exec node ace serve --hmr --watch --poll

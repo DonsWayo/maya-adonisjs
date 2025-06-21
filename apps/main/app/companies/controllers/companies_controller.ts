@@ -17,6 +17,7 @@ export default class CompaniesController {
   public async index({ bouncer, inertia }: HttpContext) {
     await bouncer.with(CompanyPolicy).authorize('viewList')
 
+
     // Load companies with their associated users
     const companies = await Company.query().preload('users')
     // Use an empty string instead of null for the query comparison

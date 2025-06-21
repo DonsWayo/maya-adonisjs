@@ -1,14 +1,17 @@
+import { inject } from '@adonisjs/core'
 import { randomUUID } from 'node:crypto'
 import { ErrorEvent } from '#error/models/error_event'
 import { ClickHouseService } from '#error/services/clickhouse_service'
 import ProcessEvent from '#jobs/process_event'
 import logger from '@adonisjs/core/services/logger'
 
+@inject()
 export default class ErrorEventService {
+  constructor(private clickHouseService: ClickHouseService) {}
   /**
    * Store an error event from API payload
    */
-  public static async storeFromPayload(
+  public async storeFromPayload(
     projectId: string,
     payload: any
   ): Promise<{ id: string }> {
@@ -113,7 +116,7 @@ export default class ErrorEventService {
     }
 
     // Save to ClickHouse first (synchronously)
-    await ClickHouseService.storeErrorEvent(errorEvent)
+    await this.clickHouseService.storeErrorEvent(errorEvent)
 
     // Enqueue async processing job
     await ProcessEvent.dispatch({
@@ -127,9 +130,9 @@ export default class ErrorEventService {
   /**
    * Store an error event directly (for seeding)
    */
-  public static async storeDirectly(errorEvent: ErrorEvent): Promise<void> {
+  public async storeDirectly(errorEvent: ErrorEvent): Promise<void> {
     // Save to ClickHouse
-    await ClickHouseService.storeErrorEvent(errorEvent)
+    await this.clickHouseService.storeErrorEvent(errorEvent)
 
     // Enqueue async processing job
     try {

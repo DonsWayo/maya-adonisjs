@@ -48,7 +48,7 @@ export function ErrorFilters({
         />
       </div>
 
-      <Select value={filters.level || ''} onValueChange={(value) => onFilterChange('level', value)}>
+      <Select value={filters.level || 'all'} onValueChange={(value) => onFilterChange('level', value === 'all' ? '' : value)}>
         <SelectTrigger className="w-[150px]">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4" />
@@ -56,7 +56,7 @@ export function ErrorFilters({
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Levels</SelectItem>
+          <SelectItem value="all">All Levels</SelectItem>
           <SelectItem value="error">Error</SelectItem>
           <SelectItem value="warning">Warning</SelectItem>
           <SelectItem value="info">Info</SelectItem>
@@ -64,8 +64,8 @@ export function ErrorFilters({
       </Select>
 
       <Select
-        value={filters.environment || ''}
-        onValueChange={(value) => onFilterChange('environment', value)}
+        value={filters.environment || 'all'}
+        onValueChange={(value) => onFilterChange('environment', value === 'all' ? '' : value)}
       >
         <SelectTrigger className="w-[150px]">
           <div className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export function ErrorFilters({
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Environments</SelectItem>
+          <SelectItem value="all">All Environments</SelectItem>
           {environments.map((env) => (
             <SelectItem key={env} value={env}>
               {env}
