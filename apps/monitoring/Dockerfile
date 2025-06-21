@@ -21,6 +21,9 @@ WORKDIR /app
 # Install all dependencies including devDependencies
 RUN pnpm install
 
+# Build workspace packages
+RUN pnpm --filter "@workspace/*" build
+
 # We'll mount the source code as a volume in docker-compose
 # This is just a placeholder directory
 RUN mkdir -p /app/apps/monitoring
@@ -48,6 +51,9 @@ RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the source code
 COPY . .
+
+# Build workspace packages first
+RUN pnpm --filter "@workspace/*" build
 
 # Build the application
 WORKDIR /app/apps/monitoring
