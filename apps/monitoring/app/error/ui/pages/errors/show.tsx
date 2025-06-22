@@ -26,6 +26,9 @@ import {
   Layers,
   Copy,
   ExternalLink,
+  Brain,
+  Lightbulb,
+  Search,
 } from 'lucide-react'
 import {
   Card,
@@ -97,12 +100,30 @@ interface ErrorEvent {
   fingerprint: string[] | null
 }
 
+
 interface ErrorEventShowProps {
   project: Project
   event: ErrorEvent
+  errorGroup?: {
+    id: string
+    aiSummary: string | null
+    metadata: {
+      aiAnalysis?: {
+        severity: string
+        category: string
+        possibleCauses: string[]
+        suggestedFixes: Array<{
+          description: string
+          confidence: number
+        }>
+        relatedErrors?: string[]
+        timestamp: string
+      }
+    }
+  }
 }
 
-export default function ErrorEventShow({ project, event }: ErrorEventShowProps) {
+export default function ErrorEventShow({ project, event, errorGroup }: ErrorEventShowProps) {
   const [copied, setCopied] = useState(false)
 
   const copyEventId = () => {
@@ -266,12 +287,16 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
         </div>
 
         <Tabs defaultValue="exception" className="mb-6">
-          <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+          <TabsList className="grid grid-cols-6 w-full max-w-4xl">
             <TabsTrigger value="exception">Exception</TabsTrigger>
             <TabsTrigger value="breadcrumbs">Breadcrumbs</TabsTrigger>
             <TabsTrigger value="request">Request</TabsTrigger>
             <TabsTrigger value="user">User</TabsTrigger>
             <TabsTrigger value="context">Context</TabsTrigger>
+            <TabsTrigger value="ai-analysis">
+              <Brain className="w-4 h-4 mr-1" />
+              AI Analysis
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="exception" className="space-y-4">
@@ -583,6 +608,107 @@ export default function ErrorEventShow({ project, event }: ErrorEventShowProps) 
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ai-analysis" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="w-5 h-5" />
+                  AI-Powered Error Analysis
+                </CardTitle>
+                <CardDescription>
+                  Automatic analysis and insights powered by AI
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {errorGroup?.aiSummary || errorGroup?.metadata?.aiAnalysis ? (
+                  <div className="space-y-6">
+                    {/* Summary */}
+                    {errorGroup.aiSummary && (
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Summary</h3>
+                        <p className="text-sm text-muted-foreground">{errorGroup.aiSummary}</p>
+                      </div>
+                    )}
+
+                    {/* Severity and Category */}
+                    {errorGroup.metadata?.aiAnalysis && (
+                      <>
+                        <div className="flex gap-4">
+                          <div>
+                            <h3 className="text-sm font-medium mb-2">Severity</h3>
+                            <Badge className={
+                              errorGroup.metadata.aiAnalysis.severity === 'critical' ? 'bg-red-500' :
+                              errorGroup.metadata.aiAnalysis.severity === 'high' ? 'bg-orange-500' :
+                              errorGroup.metadata.aiAnalysis.severity === 'medium' ? 'bg-yellow-500' :
+                              'bg-blue-500'
+                            }>
+                              {errorGroup.metadata.aiAnalysis.severity}
+                            </Badge>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-medium mb-2">Category</h3>
+                            <Badge variant="outline">
+                              {errorGroup.metadata.aiAnalysis.category}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Possible Causes */}
+                        {errorGroup.metadata.aiAnalysis.possibleCauses && (
+                          <div>
+                            <h3 className="text-sm font-medium mb-2">Possible Causes</h3>
+                            <ul className="list-disc list-inside space-y-1">
+                              {errorGroup.metadata.aiAnalysis.possibleCauses.map((cause, index) => (
+                                <li key={index} className="text-sm text-muted-foreground">{cause}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Suggested Fixes */}
+                        {errorGroup.metadata.aiAnalysis.suggestedFixes && (
+                          <div>
+                            <h3 className="text-sm font-medium mb-2 flex items-center gap-1">
+                              <Lightbulb className="w-4 h-4" />
+                              Suggested Fixes
+                            </h3>
+                            <div className="space-y-2">
+                              {errorGroup.metadata.aiAnalysis.suggestedFixes.map((fix, index) => (
+                                <div key={index} className="border rounded-md p-3 bg-muted/50">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <p className="text-sm">{fix.description}</p>
+                                    <Badge variant="secondary" className="ml-2">
+                                      {Math.round(fix.confidence * 100)}% confidence
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Analysis Timestamp */}
+                        <div className="text-xs text-muted-foreground">
+                          Last analyzed: {DateTime.fromISO(errorGroup.metadata.aiAnalysis.timestamp).toRelative()}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Brain className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      AI analysis is being processed. It will appear here automatically when ready.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Analysis is triggered for new errors and periodically updated.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

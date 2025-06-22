@@ -1,0 +1,151 @@
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+export default class extends BaseSchema {
+  protected tableName = 'error_embeddings'
+
+  async up() {
+    // Enable required extensions
+    await this.schema.raw('CREATE EXTENSION IF NOT EXISTS ai CASCADE')
+    await this.schema.raw('CREATE EXTENSION IF NOT EXISTS vector CASCADE')
+
+    // Create error embeddings table to store vector data from ClickHouse errors
+    const tableExists = await this.schema.hasTable('error_embeddings')
+    
+    if (!tableExists) {
+      await this.schema.createTable('error_embeddings', (table) => {
+        table.uuid('id').primary()
+        table.uuid('project_id').notNullable()
+        table.text('content').notNullable()
+        table.jsonb('metadata').defaultTo('{}')
+        table.specificType('embedding', 'vector(1536)')
+        table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
+      })
+      
+      // Create indexes separately to avoid conflicts
+      await this.schema.raw('CREATE INDEX IF NOT EXISTS error_embeddings_project_id_index ON error_embeddings (project_id)')
+      await this.schema.raw('CREATE INDEX IF NOT EXISTS error_embeddings_metadata_index ON error_embeddings USING GIN (metadata)')
+    }
+
+    // Create vector similarity index
+    await this.schema.raw(`
+      CREATE INDEX IF NOT EXISTS idx_error_embeddings_vector 
+      ON error_embeddings 
+      USING ivfflat (embedding vector_cosine_ops) 
+      WITH (lists = 100)
+    `)
+
+    // Create a function to set OpenAI API key from environment
+    await this.schema.raw(`
+      CREATE OR REPLACE FUNCTION ai.set_openai_key(api_key text)
+      RETURNS void AS $$
+      BEGIN
+        -- For OpenRouter, we need to set both the key and base URL
+        IF api_key LIKE 'sk-or-%' THEN
+          PERFORM set_config('ai.openai_api_key', api_key, false);
+          PERFORM set_config('ai.openai_base_url', 'https://openrouter.ai/api/v1', false);
+        ELSE
+          PERFORM set_config('ai.openai_api_key', api_key, false);
+        END IF;
+      END;
+      $$ LANGUAGE plpgsql;
+    `)
+
+    // Create helper functions for error analysis using pgai
+    await this.schema.raw(`
+      CREATE OR REPLACE FUNCTION ai.analyze_error(
+        error_message text,
+        error_type text,
+        stack_trace text DEFAULT NULL,
+        environment text DEFAULT NULL
+      )
+      RETURNS jsonb AS $$
+      DECLARE
+        prompt text;
+        result jsonb;
+      BEGIN
+        prompt := format('
+Analyze this error and provide insights:
+Type: %s
+Message: %s
+Environment: %s
+Stack Trace: %s
+
+Provide a JSON response with:
+{
+  "summary": "Brief summary of the error",
+  "severity": "critical|high|medium|low",
+  "category": "runtime|configuration|dependency|network|database|other",
+  "possibleCauses": ["cause1", "cause2"],
+  "suggestedFixes": [
+    {
+      "description": "Fix description",
+      "confidence": 0.9
+    }
+  ]
+}', error_type, error_message, COALESCE(environment, 'unknown'), COALESCE(LEFT(stack_trace, 500), 'none'));
+
+        -- Use pgai to generate analysis
+        SELECT ai.openai_chat_complete(
+          'mistral-7b-instruct',
+          jsonb_build_array(
+            jsonb_build_object('role', 'system', 'content', 'You are an expert software engineer. Respond only with valid JSON.'),
+            jsonb_build_object('role', 'user', 'content', prompt)
+          ),
+          response_format => jsonb_build_object('type', 'json_object')
+        )->'choices'->0->'message'->>'content' INTO result;
+
+        RETURN result::jsonb;
+      EXCEPTION
+        WHEN OTHERS THEN
+          RETURN jsonb_build_object(
+            'error', 'Analysis failed',
+            'message', SQLERRM
+          );
+      END;
+      $$ LANGUAGE plpgsql;
+    `)
+
+    // Create semantic search function for error embeddings
+    await this.schema.raw(`
+      CREATE OR REPLACE FUNCTION ai.find_similar_errors(
+        query_text text,
+        project_id_filter uuid DEFAULT NULL,
+        limit_count int DEFAULT 10
+      )
+      RETURNS TABLE(
+        id uuid,
+        content text,
+        metadata jsonb,
+        similarity float
+      ) AS $$
+      BEGIN
+        RETURN QUERY
+        WITH query_embedding AS (
+          SELECT ai.openai_embed('text-embedding-3-small', query_text) as embedding
+        )
+        SELECT 
+          e.id,
+          e.content,
+          e.metadata,
+          1 - (e.embedding <=> q.embedding) as similarity
+        FROM error_embeddings e
+        CROSS JOIN query_embedding q
+        WHERE (project_id_filter IS NULL OR e.project_id = project_id_filter)
+          AND 1 - (e.embedding <=> q.embedding) > 0.7
+        ORDER BY e.embedding <=> q.embedding
+        LIMIT limit_count;
+      END;
+      $$ LANGUAGE plpgsql;
+    `)
+  }
+
+  async down() {
+    // Drop functions
+    await this.schema.raw('DROP FUNCTION IF EXISTS ai.analyze_error')
+    await this.schema.raw('DROP FUNCTION IF EXISTS ai.find_similar_errors')
+    await this.schema.raw('DROP FUNCTION IF EXISTS ai.set_openai_key')
+
+    // Drop the embeddings table
+    await this.schema.dropTable('error_embeddings')
+  }
+}

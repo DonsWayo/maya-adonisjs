@@ -23,6 +23,7 @@
     "#marketing/*": "./app/marketing/*.js",
     "#analytics/*": "./app/analytics/*.js",
     "#companies/*": "./app/companies/*.js",
+    "#ai_usage/*": "./app/ai_usage/*.js",
     "#providers/*": "./providers/*.js",
     "#tests/*": "./tests/*.js",
     "#webhooks/*": "./app/webhooks/*.js"

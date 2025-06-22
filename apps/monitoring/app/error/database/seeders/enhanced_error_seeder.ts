@@ -4,9 +4,13 @@ import { DateTime } from 'luxon'
 import Project from '#error/models/project'
 import { ErrorEvent } from '#error/models/error_event'
 import ErrorEventService from '#services/error/error_event_service'
+import { ClickHouseService } from '#error/services/clickhouse_service'
+import app from '@adonisjs/core/services/app'
 
 export default class EnhancedErrorSeeder extends BaseSeeder {
   private projects: Project[] = []
+  private errorEventService!: ErrorEventService
+  private clickHouseService!: ClickHouseService
 
   // Error templates for realistic patterns
   private errorTemplates = {
@@ -83,6 +87,10 @@ export default class EnhancedErrorSeeder extends BaseSeeder {
   ]
 
   public async run() {
+    // Initialize services through dependency injection
+    this.clickHouseService = await app.container.make(ClickHouseService)
+    this.errorEventService = await app.container.make(ErrorEventService)
+
     // Get existing projects or create new ones
     this.projects = await Project.all()
 
@@ -93,8 +101,8 @@ export default class EnhancedErrorSeeder extends BaseSeeder {
 
     // Skip or reduce in test environment
     const isTest = process.env.NODE_ENV === 'test'
-    const totalEvents = isTest ? 50 : 10000 // Generate fewer events in test mode
-    const batchSize = isTest ? 10 : 100
+    const totalEvents = isTest ? 50 : 80 // Generate fewer events in test mode
+    const batchSize = isTest ? 10 : 20
 
     console.log(`Generating ${totalEvents} error events... (${isTest ? 'TEST MODE' : 'FULL MODE'})`)
 
@@ -109,6 +117,11 @@ export default class EnhancedErrorSeeder extends BaseSeeder {
 
       // Insert batch into ClickHouse
       await this.insertBatch(batch)
+
+      // Small delay to avoid overwhelming the job queue
+      if (!isTest) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
 
       console.log(`Progress: ${i + currentBatchSize}/${totalEvents}`)
     }
@@ -378,12 +391,36 @@ export default class EnhancedErrorSeeder extends BaseSeeder {
   }
 
   private async insertBatch(events: ErrorEvent[]): Promise<void> {
-    for (const event of events) {
-      try {
-        // Use the service to store the event and dispatch job
-        await ErrorEventService.storeDirectly(event)
-      } catch (error) {
-        console.error('Failed to insert event:', error)
+    try {
+      // Use batch insert for performance - directly to ClickHouse
+      await this.clickHouseService.batchInsert(events)
+      
+      // Only dispatch processing jobs for a sample of events to avoid overwhelming the queue
+      // In production, all events would be processed, but for seeding we'll process 10%
+      const sampleSize = Math.max(1, Math.floor(events.length * 0.1))
+      const sampledEvents = faker.helpers.arrayElements(events, sampleSize)
+      
+      for (const event of sampledEvents) {
+        try {
+          // Dispatch processing job for sampled events
+          const ProcessEvent = (await import('#jobs/process_event')).default
+          await ProcessEvent.dispatch({
+            eventId: event.id,
+            projectId: event.projectId,
+          })
+        } catch (error) {
+          console.error('Failed to dispatch job for event:', error)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to insert batch:', error)
+      // Fallback to individual inserts if batch fails
+      for (const event of events) {
+        try {
+          await this.errorEventService.storeDirectly(event)
+        } catch (individualError) {
+          console.error('Failed to insert individual event:', individualError)
+        }
       }
     }
   }

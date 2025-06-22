@@ -48,18 +48,9 @@ export class ApiResourceService {
         console.log('API resource already exists in Logto:', existingResource.id)
         console.log('Resource details:', JSON.stringify(existingResource, null, 2))
         
-        // Check if the resource has the required scopes
-        console.log('Checking if resource has required scopes...')
-        const scopes = await this.getApiResourceScopes(existingResource.id)
-        console.log(`Resource has ${scopes.length} scopes`)
-        
-        // If scopes are missing, register them
-        if (scopes.length === 0) {
-          console.log('No scopes found, registering required scopes...')
-          await this.registerApiScopes(existingResource.id)
-        } else {
-          console.log('Scopes already exist, no need to register')
-        }
+        // Always try to register/update scopes to ensure all are present
+        console.log('Ensuring all required scopes are registered...')
+        await this.registerApiScopes(existingResource.id)
         
         // Check if the M2M role exists
         await this.ensureM2MRoleExists(existingResource.id)
@@ -129,7 +120,7 @@ export class ApiResourceService {
       console.log(`Resource has ${scopes.length} scopes`)
       
       // Check if all required scopes are present
-      const requiredScopes = ['read:users', 'read:companies', 'write:users', 'write:companies']
+      const requiredScopes = ['read:users', 'read:companies', 'write:users', 'write:companies', 'read:ai_usage', 'write:ai_usage']
       const scopeNames = scopes.map((scope: any) => scope.name)
       
       console.log('Required scopes:', requiredScopes)
@@ -198,6 +189,14 @@ export class ApiResourceService {
         name: 'write:companies',
         description: 'Write company data',
       },
+      {
+        name: 'read:ai_usage',
+        description: 'Read AI usage data',
+      },
+      {
+        name: 'write:ai_usage',
+        description: 'Write AI usage data',
+      },
     ]
     
     console.log(`Registering ${scopes.length} scopes for API resource ${resourceId}...`)
@@ -251,7 +250,7 @@ export class ApiResourceService {
         resources: [
           {
             indicator: this.apiIdentifier,
-            scopes: ['read:users', 'read:companies'],
+            scopes: ['read:users', 'read:companies', 'read:ai_usage', 'write:ai_usage'],
           },
         ],
       })

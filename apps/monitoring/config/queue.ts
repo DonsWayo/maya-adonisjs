@@ -6,7 +6,7 @@ const queueConfig = defineConfig({
     host: Env.get('REDIS_HOST'),
     port: Env.get('REDIS_PORT'),
     password: Env.get('REDIS_PASSWORD'),
-    db: Env.get('REDIS_DB', 0),
+    db: Number(Env.get('REDIS_DB', 0)),
   },
   defaultQueue: 'default',
   queues: {

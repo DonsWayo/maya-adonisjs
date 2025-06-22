@@ -89,6 +89,10 @@ export default defineConfig({
     //logto
     () => import('#auth/logto/routes'),
 
+    //ai_usage
+    () => import('#ai_usage/start/events'),
+    () => import('#ai_usage/routes'),
+
   ],
 
   /*

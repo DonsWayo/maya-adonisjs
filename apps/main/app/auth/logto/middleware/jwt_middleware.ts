@@ -65,10 +65,10 @@ export default class LogtoJwtMiddleware {
         logger.warn(`Token issuer mismatch: ${payload.iss}, expected: ${expectedIssuer}, but continuing anyway`)
       }
       
-      // Check if this is an M2M token by checking the grant_type claim or client_id
+      // Check if this is an M2M token by checking the grant_type claim
       // M2M tokens will have 'client_credentials' as the grant type
-      const m2mClientId = env.get('LOGTO_M2M_CLIENT_ID', '9hoqs8rq2zlywl03f1j23')
-      const isM2MToken = payload.grant_type === 'client_credentials' || payload.client_id === m2mClientId
+      // Any M2M app (main app, monitoring app, etc) will have this grant type
+      const isM2MToken = payload.grant_type === 'client_credentials'
       
       // Get the client ID from the token
       const clientId = payload.client_id || ''
@@ -76,8 +76,7 @@ export default class LogtoJwtMiddleware {
       logger.info('Token validation info:', {
         tokenClientId: clientId,
         grantType: payload.grant_type || 'not_specified',
-        isM2MToken,
-        expectedM2MClientId: m2mClientId
+        isM2MToken
       })
       
       // Extract user ID from token

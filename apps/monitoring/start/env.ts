@@ -92,5 +92,17 @@ export default await Env.create(new URL('../', import.meta.url), {
   REDIS_HOST: Env.schema.string({ format: 'host' }),
   REDIS_PORT: Env.schema.number(),
   REDIS_PASSWORD: Env.schema.string.optional(),
+  REDIS_DB: Env.schema.number.optional(),
   QUEUE_PORT: Env.schema.number(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring AI service
+  |----------------------------------------------------------
+  */
+  AI_PROVIDER: Env.schema.enum.optional(['openai', 'openrouter', 'anthropic', 'google', 'local'] as const),
+  AI_API_KEY: Env.schema.string.optional(),
+  AI_DEFAULT_MODEL: Env.schema.string.optional(),
+  AI_EMBEDDING_MODEL: Env.schema.string.optional(),
+  OPENAI_API_KEY: Env.schema.string.optional(),
 })

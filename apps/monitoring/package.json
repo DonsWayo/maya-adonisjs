@@ -76,11 +76,13 @@
     "@jrmc/adonis-attachment": "^3.2.4",
     "@nemoventures/adonis-jobs": "^0.8.0",
     "@vinejs/vine": "^3.0.1",
+    "@workspace/ai": "workspace:*",
     "@workspace/ui": "workspace:*",
     "adonis-clickhouse": "workspace:*",
     "bullmq": "^5.54.0",
     "edge.js": "^6.2.1",
     "ioredis": "^5.6.1",
+    "jsonrepair": "^3.10.1",
     "lucide-react": "0.503.0",
     "luxon": "^3.6.1",
     "pg": "^8.16.0",
@@ -91,7 +93,10 @@
   "hotHook": {
     "boundaries": [
       "./app/controllers/**/*.ts",
-      "./app/middleware/*.ts"
+      "./app/middleware/*.ts",
+      "./app/services/**/*.ts",
+      "./app/jobs/**/*.ts",
+      "./app/error/**/*.ts"
     ]
   },
   "prettier": "@adonisjs/prettier-config"

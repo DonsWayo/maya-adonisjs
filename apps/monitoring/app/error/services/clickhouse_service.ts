@@ -507,6 +507,41 @@ export class ClickHouseService {
   /**
    * Batch insert for seeder efficiency
    */
+  /**
+   * Generic insert method for any table
+   */
+  public async insert(table: string, values: any[]): Promise<void> {
+    try {
+      await clickhouse.insert({
+        table,
+        values,
+        format: 'JSONEachRow',
+      })
+    } catch (error) {
+      console.error(`Failed to insert into ${table}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Generic query method
+   */
+  public async query<T = any>(query: string, params?: Record<string, any>): Promise<{ data: T[] }> {
+    try {
+      const result = await clickhouse.query({
+        query,
+        query_params: params,
+        format: 'JSONEachRow',
+      })
+      
+      const jsonResult = await result.json() as T[]
+      return { data: Array.isArray(jsonResult) ? jsonResult : [] }
+    } catch (error) {
+      console.error('ClickHouse query failed:', error)
+      throw error
+    }
+  }
+
   public async batchInsert(events: ErrorEvent[]): Promise<void> {
     const formatDateTime = (date: Date): string => {
       return date.toISOString().substring(0, 19).replace('T', ' ')

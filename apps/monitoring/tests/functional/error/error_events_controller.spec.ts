@@ -400,7 +400,7 @@ test.group('Error Events Controller', (group) => {
 
     const responses = await Promise.all(promises)
     
-    responses.forEach((response, index) => {
+    responses.forEach((response) => {
       response.assertStatus(200)
       assert.isString(response.body().id)
     })

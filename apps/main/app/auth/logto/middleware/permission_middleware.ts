@@ -127,18 +127,20 @@ export default class LogtoPermissionMiddleware {
     
     // Extract resource from path
     // Example: /api/v1/users -> users
-    const matches = path.match(/\/api(?:\/v\d+)?\/([\w]+)(?:\/|$)/)
+    // Example: /api/v1/ai-usage -> ai_usage
+    const matches = path.match(/\/api(?:\/v\d+)?\/([\w-]+)(?:\/|$)/)
     if (!matches) return []
     
-    const resource = matches[1]
+    // Convert hyphens to underscores for resource names
+    const resource = matches[1].replace(/-/g, '_')
     
     // Map HTTP method to action
     const actionMap: Record<string, string> = {
       get: 'read',
-      post: 'create',
-      put: 'update',
-      patch: 'update',
-      delete: 'delete'
+      post: 'write',
+      put: 'write',
+      patch: 'write',
+      delete: 'write'
     }
     
     const action = actionMap[method] || 'access'

@@ -12,6 +12,8 @@ import router from '@adonisjs/core/services/router'
 const ProjectsController = () => import('#error/controllers/projects_controller')
 const ErrorEventsController = () => import('#error/controllers/error_events_controller')
 const AIAnalysisController = () => import('#error/controllers/ai_analysis_controller')
+const AICacheController = () => import('#error/controllers/ai_cache_controller')
+const AIGroupingController = () => import('#error/controllers/ai_grouping_controller')
 
 // UI Routes (require authentication)
 
@@ -55,6 +57,36 @@ router
 
 router
   .get('/api/projects/:projectId/groups/:groupId/ai-analysis', [AIAnalysisController, 'getGroupAnalysis'])
+  .middleware(middleware.auth())
+
+router
+  .post('/api/projects/:projectId/groups/ai-analysis', [AIAnalysisController, 'getGroupsAnalysis'])
+  .middleware(middleware.auth())
+
+router
+  .get('/api/projects/:projectId/ai/trends', [AIAnalysisController, 'getProjectTrends'])
+  .middleware(middleware.auth())
+
+// AI Cache routes
+router
+  .get('/api/ai-cache/stats', [AICacheController, 'stats'])
+  .middleware(middleware.auth())
+
+router
+  .get('/api/projects/:projectId/ai-cache/:fingerprintHash/:analysisType', [AICacheController, 'getCached'])
+  .middleware(middleware.auth())
+
+router
+  .post('/api/ai-cache/:fingerprintHash/:analysisType/feedback', [AICacheController, 'submitFeedback'])
+  .middleware(middleware.auth())
+
+// AI Grouping routes
+router
+  .post('/api/projects/:projectId/ai-grouping/suggest', [AIGroupingController, 'suggestGrouping'])
+  .middleware(middleware.auth())
+
+router
+  .post('/api/projects/:projectId/ai-grouping/apply', [AIGroupingController, 'applyGrouping'])
   .middleware(middleware.auth())
 
 // API Routes (no authentication required for error reporting)

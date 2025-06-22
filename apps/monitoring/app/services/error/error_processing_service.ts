@@ -1,21 +1,28 @@
+import { inject } from '@adonisjs/core'
 import { ClickHouseService } from '#error/services/clickhouse_service'
 import ErrorGroup from '#error/models/error_group'
 import db from '@adonisjs/lucid/services/db'
 import crypto from 'node:crypto'
 import { DateTime } from 'luxon'
 import logger from '@adonisjs/core/services/logger'
+import AIAnalysisService from '#services/ai/ai_service'
 
+@inject()
 export default class ErrorProcessingService {
+  constructor(
+    private clickHouseService: ClickHouseService,
+    private aiAnalysisService: AIAnalysisService
+  ) {}
   /**
    * Process an error event by fetching it from ClickHouse and creating/updating error groups
    */
-  static async processEvent(eventId: string, projectId: string): Promise<void> {
+  async processEvent(eventId: string, projectId: string): Promise<void> {
     logger.info(`Starting to process event ${eventId} for project ${projectId}`)
 
     try {
       // 1. Fetch the raw event from ClickHouse
       logger.debug(`Fetching event ${eventId} from ClickHouse...`)
-      const event = await ClickHouseService.getErrorEventById(eventId)
+      const event = await this.clickHouseService.getErrorEventById(eventId)
 
       if (!event) {
         logger.error(`Event ${eventId} not found in ClickHouse`)
@@ -43,24 +50,34 @@ export default class ErrorProcessingService {
 
       // 4. Update the event with the group ID
       logger.debug(`Updating event ${eventId} with group ID ${group.id}...`)
-      await ClickHouseService.updateEventGroupId(eventId, group.id)
+      await this.clickHouseService.updateEventGroupId(eventId, group.id)
 
       // 5. Update group statistics
       logger.debug(`Updating group statistics...`)
       await this.updateGroupStatistics(group.id)
 
-      // 6. Check if we should trigger AI analysis
+      // 6. Check if we should trigger AI analysis (moved before indexing)
       if (this.shouldTriggerAIAnalysis(group)) {
-        // TODO: Dispatch AI analysis job when implemented
-        // await queue.dispatch('ai-analysis', { groupId: group.id })
+        logger.info(`Triggering AI analysis for group ${group.id}`)
+        const analysis = await this.aiAnalysisService.analyzeError(event)
+        
+        if (analysis) {
+          // Store AI analysis in the error group
+          await this.updateGroupWithAIAnalysis(group.id, analysis)
+        }
       }
 
-      // 7. Check alert conditions
+      // 7. Index error for RAG only if it's a new error group or significant change
+      if (group.eventCount === 1 || group.eventCount % 100 === 0) {
+        await this.aiAnalysisService.indexError(event)
+      }
+
+      // 8. Check alert conditions
       await this.checkAlertConditions(group, event)
 
       // Mark event as processed
       logger.debug(`Marking event ${eventId} as processed...`)
-      await ClickHouseService.markEventAsProcessed(eventId)
+      await this.clickHouseService.markEventAsProcessed(eventId)
       
       logger.info(`Successfully processed event ${eventId}`)
     } catch (error) {
@@ -72,7 +89,7 @@ export default class ErrorProcessingService {
   /**
    * Calculate a deterministic hash from a fingerprint array
    */
-  static calculateFingerprintHash(fingerprint: string[]): string {
+  calculateFingerprintHash(fingerprint: string[]): string {
     const fingerprintString = fingerprint.join('::')
     return crypto.createHash('sha256').update(fingerprintString).digest('hex')
   }
@@ -80,7 +97,7 @@ export default class ErrorProcessingService {
   /**
    * Find or create an error group based on fingerprint
    */
-  static async findOrCreateErrorGroup(params: {
+  async findOrCreateErrorGroup(params: {
     projectId: string
     fingerprintHash: string
     event: any
@@ -145,7 +162,7 @@ export default class ErrorProcessingService {
   /**
    * Generate a readable title for an error group
    */
-  static generateGroupTitle(event: any): string {
+  generateGroupTitle(event: any): string {
     if (event.exception_type && event.exception_value) {
       return `${event.exception_type}: ${event.exception_value.substring(0, 100)}`
     }
@@ -156,8 +173,8 @@ export default class ErrorProcessingService {
   /**
    * Update event count and other statistics for a group
    */
-  static async updateGroupStatistics(groupId: string): Promise<void> {
-    const stats = await ClickHouseService.getGroupStatistics(groupId)
+  async updateGroupStatistics(groupId: string): Promise<void> {
+    const stats = await this.clickHouseService.getGroupStatistics(groupId)
 
     await ErrorGroup.query()
       .where('id', groupId)
@@ -186,7 +203,7 @@ export default class ErrorProcessingService {
   /**
    * Determine if AI analysis should be triggered for a group
    */
-  static shouldTriggerAIAnalysis(group: ErrorGroup): boolean {
+  shouldTriggerAIAnalysis(group: ErrorGroup): boolean {
     // Trigger AI analysis for new groups
     if (!group.aiSummary) return true
 
@@ -206,9 +223,47 @@ export default class ErrorProcessingService {
   }
 
   /**
+   * Update error group with AI analysis results
+   */
+  async updateGroupWithAIAnalysis(groupId: string, analysis: any): Promise<void> {
+    await ErrorGroup.query()
+      .where('id', groupId)
+      .update({
+        aiSummary: analysis.summary,
+        metadata: db.raw(
+          `
+          jsonb_set(
+            jsonb_set(
+              jsonb_set(
+                metadata,
+                '{aiAnalysis}',
+                ?::jsonb
+              ),
+              '{lastAnalysisDate}',
+              to_jsonb(CURRENT_TIMESTAMP)
+            ),
+            '{lastAnalysisCount}',
+            to_jsonb(event_count)
+          )
+        `,
+          [
+            JSON.stringify({
+              severity: analysis.severity,
+              category: analysis.category,
+              possibleCauses: analysis.possibleCauses,
+              suggestedFixes: analysis.suggestedFixes,
+              relatedErrors: analysis.relatedErrors,
+              timestamp: new Date().toISOString(),
+            }),
+          ]
+        ),
+      })
+  }
+
+  /**
    * Check various alert conditions for an error group
    */
-  static async checkAlertConditions(group: ErrorGroup, event: any): Promise<void> {
+  async checkAlertConditions(group: ErrorGroup, event: any): Promise<void> {
     // 1. New error group
     if (group.eventCount === 1) {
       // TODO: Dispatch alert job when implemented
@@ -220,7 +275,7 @@ export default class ErrorProcessingService {
     }
 
     // 2. Error spike (10x increase in last hour)
-    const recentStats = await ClickHouseService.getRecentGroupStats(group.id, 60)
+    const recentStats = await this.clickHouseService.getRecentGroupStats(group.id, 60)
     if (recentStats.current > recentStats.previous * 10) {
       // TODO: Dispatch alert job when implemented
       // await queue.dispatch('send-alert', {

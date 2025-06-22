@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import Project from '../models/project.js'
+import ErrorGroup from '../models/error_group.js'
 import { storeErrorEventValidator } from '../validators.js'
 import { ClickHouseService } from '../services/clickhouse_service.js'
 import ErrorEventService from '#services/error/error_event_service'
@@ -16,15 +17,19 @@ export default class ErrorEventsController {
    * API ENDPOINTS
    */
 
+  
   /**
    * Store a new error event (Sentry-compatible endpoint)
    */
   public async store({ request, params, response }: HttpContext) {
     // Extract project ID from the Sentry-style URL
     const projectId = params.projectId
-
     // Verify the project exists and authentication
     let project: Project | null = null
+
+
+    console.log('projectId test live reload:', projectId)
+
 
     // Check if projectId is a valid UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -152,6 +157,12 @@ export default class ErrorEventsController {
 
       logger.info(event, 'ErrorEventsController show')
 
+      // Get the error group if it exists
+      let errorGroup = null
+      if (event.group_id) {
+        errorGroup = await ErrorGroup.find(event.group_id)
+      }
+
       // Transform the event for Inertia (dates to ISO strings)
       const transformedEvent = {
         ...event,
@@ -160,7 +171,11 @@ export default class ErrorEventsController {
         first_seen: event.first_seen instanceof Date ? event.first_seen.toISOString() : event.first_seen,
       }
 
-      return inertia.render('error/errors/show', { project, event: transformedEvent })
+      return inertia.render('error/errors/show', { 
+        project, 
+        event: transformedEvent,
+        errorGroup
+      })
     } catch (error) {
       console.error('Error fetching error event:', error)
       return inertia.location(`/projects/${projectId}/errors`)

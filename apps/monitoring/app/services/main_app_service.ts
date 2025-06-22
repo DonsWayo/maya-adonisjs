@@ -59,7 +59,7 @@ export class MainAppService {
       // Prepare the token request according to Logto M2M documentation
       const params = new URLSearchParams()
       params.append('grant_type', 'client_credentials')
-      params.append('scope', 'read:users read:companies write:users write:companies')
+      params.append('scope', 'read:users read:companies write:users write:companies read:ai_usage write:ai_usage')
       params.append('resource', this.apiIdentifier)
 
       // Create the Basic auth header with client credentials

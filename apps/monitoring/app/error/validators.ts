@@ -86,3 +86,23 @@ export const storeErrorEventValidator = vine.compile(
       .optional(),
   })
 )
+
+
+export const suggestGroupingValidator = vine.compile(
+  vine.object({
+    errorIds: vine.array(vine.string().uuid()).minLength(2).maxLength(100).optional(),
+    groupId: vine.string().uuid().optional(),
+    timeRange: vine.enum(['1h', '24h', '7d', '30d']).optional(),
+  })
+)
+
+export const applyGroupingValidator = vine.compile(
+  vine.object({
+    suggestions: vine.array(
+      vine.object({
+        groupName: vine.string().minLength(1).maxLength(200),
+        errorIds: vine.array(vine.string().uuid()).minLength(1),
+      })
+    ),
+  })
+)

@@ -173,7 +173,7 @@ test.group('Errors pages', (group) => {
     
     // Look for pagination
     const previousButton = page.locator('button:has-text("Previous")')
-    const nextButton = page.locator('button:has-text("Next")')
+    //const nextButton = page.locator('button:has-text("Next")')
     
     // Check if pagination exists
     const hasPagination = await previousButton.isVisible().catch(() => false)
