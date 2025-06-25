@@ -342,39 +342,39 @@ services:
   #     - "traefik.enable=true"
   #     - "traefik.http.routers.docs.rule=Host(`docs.localhost`)"
   #     - "traefik.http.services.docs.loadbalancer.server.port=3300"
-  # traefik:
-  #   image: traefik:v2.9
-  #   container_name: maya_traefik
-  #   restart: always
-  #   command:
-  #     - "--api.insecure=true"
-  #     - "--api.dashboard=true"
-  #     - "--providers.docker=true"
-  #     - "--providers.docker.exposedbydefault=false"
-  #     - "--providers.docker.network=maya-adonisjs_maya_network"
-  #     - "--entrypoints.web.address=:80"
-  #     - "--accesslog=true"
-  #     - "--log.level=DEBUG"
-  #     - "--providers.docker.defaultRule=Host(`{{ normalize .Name }}.localhost`)"
-  #     - "--providers.docker.network=maya_network"
-  #     # DNS settings for internal container resolution
-  #     - "--providers.docker.useBindPortIP=false"
-  #   ports:
-  #     - '${TRAEFIK_PORT:-80}:80'
-  #     - '${TRAEFIK_SECURE_PORT:-443}:443'
-  #     - '${TRAEFIK_DASHBOARD_PORT:-8080}:8080'  # Traefik dashboard
-  #   volumes:
-  #     - "/var/run/docker.sock:/var/run/docker.sock:ro"
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
-  #     - "traefik.http.routers.dashboard.service=api@internal"
-  #     - "traefik.http.routers.dashboard.entrypoints=web"
-  #   extra_hosts:
-  #     - "logto.localhost:host-gateway"
-  #     - "admin.logto.localhost:host-gateway"
-  #   networks:
-  #     - maya_network
+  traefik:
+    image: traefik:v2.9
+    container_name: maya_traefik
+    restart: always
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=maya-adonisjs_maya_network"
+      - "--entrypoints.web.address=:80"
+      - "--accesslog=true"
+      - "--log.level=DEBUG"
+      - "--providers.docker.defaultRule=Host(`{{ normalize .Name }}.localhost`)"
+      - "--providers.docker.network=maya_network"
+      # DNS settings for internal container resolution
+      - "--providers.docker.useBindPortIP=false"
+    ports:
+      - '${TRAEFIK_PORT:-80}:80'
+      - '${TRAEFIK_SECURE_PORT:-443}:443'
+      - '${TRAEFIK_DASHBOARD_PORT:-8080}:8080'  # Traefik dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+    extra_hosts:
+      - "logto.localhost:host-gateway"
+      - "admin.logto.localhost:host-gateway"
+    networks:
+      - maya_network
 
   # MinIO - S3 compatible object storage
   minio:

@@ -24,18 +24,18 @@ export default class ProcessEvent extends Job<ProcessEventData, void> {
 
   async process() {
     const { eventId, projectId } = this.data
-    
+
     // Delegate to the service
     await this.errorProcessingService.processEvent(eventId, projectId)
   }
 
   // Job lifecycle hooks
   async onFailed(error: Error) {
-    logger.error('ProcessEvent job failed', { 
+    logger.error('ProcessEvent job failed', {
       message: error.message,
       stack: error.stack,
       eventId: this.data.eventId,
-      projectId: this.data.projectId
+      projectId: this.data.projectId,
     })
     // Could send to monitoring service
   }
@@ -43,7 +43,7 @@ export default class ProcessEvent extends Job<ProcessEventData, void> {
   async onSucceeded() {
     logger.info('ProcessEvent job completed successfully', {
       eventId: this.data.eventId,
-      projectId: this.data.projectId
+      projectId: this.data.projectId,
     })
     // Track success metrics
   }
